@@ -82,6 +82,13 @@ Deno.serve(async (req) => {
       console.log('Starting client import...')
       for (const client of importData.clients) {
       try {
+        console.log(`Processing client ${client.client_no}:`, JSON.stringify({
+          client_no: client.client_no,
+          full_name: client.full_name,
+          email: client.email,
+          phone_number: client.phone_number
+        }))
+        
         // Check if client already exists
         const { data: existingProfile } = await supabaseAdmin
           .from('profiles')
@@ -98,6 +105,8 @@ Deno.serve(async (req) => {
 
         const email = client.email || `client${client.client_no}@placeholder.com`
         const password = `TempPass${client.client_no}!`
+        
+        console.log(`Creating auth user for ${client.client_no} with email: ${email}`)
 
         // Create auth user
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -134,7 +143,14 @@ Deno.serve(async (req) => {
         console.log(`✓ Imported client ${client.client_no} - ${client.full_name}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
-        console.error(`✗ Failed to import client ${client.client_no}: ${message}`)
+        console.error(`✗ Failed to import client ${client.client_no}:`, message)
+        console.error('Client data:', JSON.stringify({
+          client_no: client.client_no,
+          full_name: client.full_name,
+          email: client.email || `client${client.client_no}@placeholder.com`,
+          phone_number: client.phone_number,
+          address: client.address
+        }))
         console.error('Full error object:', JSON.stringify(error, null, 2))
         results.clients.errors.push(`${client.client_no} - ${client.full_name}: ${message}`)
       }
@@ -167,6 +183,8 @@ Deno.serve(async (req) => {
       
       for (const loanData of importData.loans) {
       try {
+        console.log(`Processing loan ${loanData.loan_no} for client ${loanData.client_no}`)
+        
         // Check if loan already exists
         const { data: existingLoan } = await supabaseAdmin
           .from('loans')
@@ -184,6 +202,14 @@ Deno.serve(async (req) => {
         if (!userId) {
           throw new Error(`Client ${loanData.client_no} not found in ${mode === 'loans' ? 'database' : 'imported clients'}`)
         }
+        
+        console.log(`Creating loan application for ${loanData.loan_no}:`, JSON.stringify({
+          user_id: userId,
+          amount: loanData.amount,
+          signed_date: loanData.signed_date,
+          start_date: loanData.start_date,
+          terms_weeks: loanData.terms_weeks
+        }))
 
         // Create loan application first
         const { data: loanApp, error: appError } = await supabaseAdmin
@@ -263,7 +289,18 @@ Deno.serve(async (req) => {
         console.log(`  ✓ Imported ${loanData.payments.length} payments for loan ${loanData.loan_no}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
-        console.error(`✗ Failed to import loan ${loanData.loan_no}: ${message}`)
+        console.error(`✗ Failed to import loan ${loanData.loan_no}:`, message)
+        console.error('Loan data:', JSON.stringify({
+          loan_no: loanData.loan_no,
+          client_no: loanData.client_no,
+          amount: loanData.amount,
+          signed_date: loanData.signed_date,
+          start_date: loanData.start_date,
+          first_repayment_date: loanData.first_repayment_date,
+          end_date: loanData.end_date,
+          terms_weeks: loanData.terms_weeks,
+          payments_count: loanData.payments.length
+        }))
         console.error('Full error object:', JSON.stringify(error, null, 2))
         if (error && typeof error === 'object' && 'code' in error) {
           console.error('Error code:', error.code)
