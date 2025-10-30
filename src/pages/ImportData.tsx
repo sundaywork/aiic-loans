@@ -14,7 +14,8 @@ export default function ImportData() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin } = useAuth();
-  const [uploading, setUploading] = useState(false);
+  const [uploadingClients, setUploadingClients] = useState(false);
+  const [uploadingLoans, setUploadingLoans] = useState(false);
   const [preview, setPreview] = useState<any>(null);
   const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
 
@@ -119,16 +120,22 @@ export default function ImportData() {
   const handleImportClients = async () => {
     if (!preview) return;
 
-    setUploading(true);
+    setUploadingClients(true);
     try {
+      // Limit to first 10 rows for debugging
+      const limitedData = {
+        clients: preview.clients.slice(0, 10),
+        loans: []
+      };
+      
       const { data, error } = await supabase.functions.invoke("import-excel-data", {
-        body: { ...preview, mode: 'clients' }
+        body: { ...limitedData, mode: 'clients' }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Client import completed",
+        title: "Client import completed (10 rows)",
         description: `Successfully imported: ${data.clients.success} clients`
       });
 
@@ -147,23 +154,29 @@ export default function ImportData() {
         variant: "destructive"
       });
     } finally {
-      setUploading(false);
+      setUploadingClients(false);
     }
   };
 
   const handleImportLoans = async () => {
     if (!preview) return;
 
-    setUploading(true);
+    setUploadingLoans(true);
     try {
+      // Limit to first 10 rows for debugging
+      const limitedData = {
+        clients: [],
+        loans: preview.loans.slice(0, 10)
+      };
+      
       const { data, error } = await supabase.functions.invoke("import-excel-data", {
-        body: { ...preview, mode: 'loans' }
+        body: { ...limitedData, mode: 'loans' }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Loan import completed",
+        title: "Loan import completed (10 rows)",
         description: `Successfully imported: ${data.loans.success} loans, ${data.payments.success} payments`
       });
 
@@ -185,7 +198,7 @@ export default function ImportData() {
         variant: "destructive"
       });
     } finally {
-      setUploading(false);
+      setUploadingLoans(false);
     }
   };
 
@@ -380,11 +393,11 @@ export default function ImportData() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Button onClick={handleImportClients} disabled={uploading} variant="outline">
-                    {uploading ? "Importing..." : "Import Clients Only"}
+                  <Button onClick={handleImportClients} disabled={uploadingClients || uploadingLoans} variant="outline">
+                    {uploadingClients ? "Importing..." : "Import Clients (10 rows)"}
                   </Button>
-                  <Button onClick={handleImportLoans} disabled={uploading}>
-                    {uploading ? "Importing..." : "Import Loans & Payments"}
+                  <Button onClick={handleImportLoans} disabled={uploadingClients || uploadingLoans}>
+                    {uploadingLoans ? "Importing..." : "Import Loans (10 rows)"}
                   </Button>
                 </div>
               </div>
