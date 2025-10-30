@@ -20,9 +20,11 @@ export default function StaffDashboard() {
   const [loans, setLoans] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [selectedApp, setSelectedApp] = useState<any>(null);
+  const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [fundDialogOpen, setFundDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [loanDetailsDialogOpen, setLoanDetailsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [reviewData, setReviewData] = useState({
@@ -384,6 +386,18 @@ export default function StaffDashboard() {
                           </p>
                         </div>
                       </div>
+
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedLoan(loan);
+                          setLoanDetailsDialogOpen(true);
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Details & Payments
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -750,6 +764,133 @@ export default function StaffDashboard() {
 
               <div className="flex justify-end">
                 <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Loan Details Dialog */}
+      <Dialog open={loanDetailsDialogOpen} onOpenChange={setLoanDetailsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Loan Details</DialogTitle>
+            <DialogDescription>Complete loan information and payment history</DialogDescription>
+          </DialogHeader>
+
+          {selectedLoan && (
+            <div className="space-y-6">
+              {/* Borrower Information */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Borrower Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Full Name</Label>
+                    <p className="font-medium">{selectedLoan.profiles?.full_name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Email</Label>
+                    <p className="font-medium">{selectedLoan.profiles?.email || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div className="mt-1">
+                      <StatusBadge status={selectedLoan.status} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Start Date</Label>
+                    <p className="font-medium">{format(new Date(selectedLoan.start_date), "PPP")}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loan Financial Details */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Loan Details</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Principal Amount</Label>
+                    <p className="font-medium text-lg">${selectedLoan.principal_amount}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Total Amount (with interest)</Label>
+                    <p className="font-medium text-lg">${selectedLoan.total_amount}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Remaining Balance</Label>
+                    <p className="font-medium text-lg text-primary">${selectedLoan.remaining_balance}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Interest Rate (APR)</Label>
+                    <p className="font-medium">{selectedLoan.interest_rate}%</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Weekly Payment</Label>
+                    <p className="font-medium">${selectedLoan.weekly_payment}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Terms</Label>
+                    <p className="font-medium">{selectedLoan.terms_remaining} / {selectedLoan.terms_weeks} weeks</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Next Payment Due</Label>
+                    <p className="font-medium">{format(new Date(selectedLoan.next_payment_date), "PPP")}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Amount Paid</Label>
+                    <p className="font-medium text-green-600">
+                      ${(parseFloat(selectedLoan.total_amount) - parseFloat(selectedLoan.remaining_balance)).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment History */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Payment History</h3>
+                {payments.filter(p => p.loan_id === selectedLoan.id).length > 0 ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-3 text-sm font-medium">Date</th>
+                          <th className="text-left p-3 text-sm font-medium">Amount</th>
+                          <th className="text-left p-3 text-sm font-medium">Balance After</th>
+                          <th className="text-left p-3 text-sm font-medium">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payments
+                          .filter(p => p.loan_id === selectedLoan.id)
+                          .map((payment) => (
+                            <tr key={payment.id} className="border-t">
+                              <td className="p-3 text-sm">
+                                {format(new Date(payment.payment_date), "PPP")}
+                              </td>
+                              <td className="p-3 text-sm font-medium text-green-600">
+                                ${payment.amount}
+                              </td>
+                              <td className="p-3 text-sm">
+                                ${payment.remaining_balance_after}
+                              </td>
+                              <td className="p-3 text-sm text-muted-foreground">
+                                {payment.notes || "-"}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No payments recorded yet</p>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setLoanDetailsDialogOpen(false)}>
                   Close
                 </Button>
               </div>
