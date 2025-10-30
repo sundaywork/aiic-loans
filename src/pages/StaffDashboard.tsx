@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { DollarSign, LogOut, Eye, CheckCircle, XCircle, Clock, FileText } from "lucide-react";
+import { format, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { DollarSign, LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search } from "lucide-react";
 
 export default function StaffDashboard() {
   const { signOut, user } = useAuth();
@@ -26,6 +27,7 @@ export default function StaffDashboard() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [loanDetailsDialogOpen, setLoanDetailsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [paymentSearch, setPaymentSearch] = useState("");
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -105,6 +107,72 @@ export default function StaffDashboard() {
     const { data } = supabase.storage.from("loan-documents").getPublicUrl(urlOrPath);
     return data.publicUrl;
   };
+
+  const filteredPayments = useMemo(() => {
+    if (!paymentSearch.trim()) return payments;
+
+    const searchLower = paymentSearch.toLowerCase().trim();
+
+    return payments.filter((payment) => {
+      // Search by user name
+      const userName = payment.loans?.profiles?.full_name?.toLowerCase() || "";
+      if (userName.includes(searchLower)) return true;
+
+      // Search by amount
+      const amount = payment.amount?.toString() || "";
+      if (amount.includes(searchLower)) return true;
+
+      // Search by date (various formats)
+      const paymentDate = new Date(payment.payment_date);
+      
+      // Try to parse as a date
+      try {
+        const searchDate = parseISO(searchLower);
+        if (!isNaN(searchDate.getTime())) {
+          // Check if same day
+          if (format(paymentDate, "yyyy-MM-dd") === format(searchDate, "yyyy-MM-dd")) return true;
+        }
+      } catch (e) {
+        // Not a valid date string
+      }
+
+      // Check for month name (e.g., "january", "jan")
+      const monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const monthIndex = monthNames.findIndex(m => m.startsWith(searchLower));
+      if (monthIndex !== -1) {
+        if (paymentDate.getMonth() === monthIndex) return true;
+      }
+
+      // Check for year
+      if (searchLower.length === 4 && !isNaN(Number(searchLower))) {
+        if (paymentDate.getFullYear().toString() === searchLower) return true;
+      }
+
+      // Check if searching for "this week" or "this month"
+      const now = new Date();
+      if (searchLower === "this week") {
+        return isWithinInterval(paymentDate, {
+          start: startOfWeek(now),
+          end: endOfWeek(now)
+        });
+      }
+      if (searchLower === "this month") {
+        return isWithinInterval(paymentDate, {
+          start: startOfMonth(now),
+          end: endOfMonth(now)
+        });
+      }
+
+      // Check formatted date string
+      const formattedDate = format(paymentDate, "MMM d, yyyy").toLowerCase();
+      if (formattedDate.includes(searchLower)) return true;
+
+      return false;
+    });
+  }, [payments, paymentSearch]);
 
   const handleReviewApplication = (app: any) => {
     setSelectedApp(app);
@@ -468,36 +536,61 @@ export default function StaffDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Payment History</CardTitle>
-                <CardDescription>View all recorded payments</CardDescription>
+                <CardDescription>View all recorded payments across all loans</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {payments.map((payment) => (
-                    <div key={payment.id} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-semibold">{payment.loans?.profiles?.full_name || "N/A"}</h4>
-                          <p className="text-sm text-muted-foreground">{payment.loans?.profiles?.email}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-lg">${payment.amount}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(payment.payment_date), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Balance After Payment</span>
-                        <span className="font-semibold">${payment.remaining_balance_after}</span>
-                      </div>
-
-                      {payment.notes && (
-                        <p className="text-sm text-muted-foreground mt-2 border-t pt-2">{payment.notes}</p>
-                      )}
-                    </div>
-                  ))}
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder='Search by user name, amount, or date (e.g., "2025-01-15", "this week", "this month", "January")'
+                    value={paymentSearch}
+                    onChange={(e) => setPaymentSearch(e.target.value)}
+                    className="max-w-2xl"
+                  />
                 </div>
+
+                {filteredPayments.length > 0 ? (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Borrower</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-right">Balance After</TableHead>
+                          <TableHead>Notes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPayments.map((payment) => (
+                          <TableRow key={payment.id}>
+                            <TableCell className="font-medium">
+                              {format(new Date(payment.payment_date), "MMM d, yyyy")}
+                            </TableCell>
+                            <TableCell>{payment.loans?.profiles?.full_name || "N/A"}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {payment.loans?.profiles?.email || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-green-600">
+                              ${payment.amount}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              ${payment.remaining_balance_after}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground max-w-xs truncate">
+                              {payment.notes || "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    {paymentSearch ? "No payments found matching your search" : "No payments recorded yet"}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
