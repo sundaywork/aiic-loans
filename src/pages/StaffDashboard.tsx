@@ -13,11 +13,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { format, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search } from "lucide-react";
+import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { useNavigate } from "react-router-dom";
 
 export default function StaffDashboard() {
   const { signOut, user } = useAuth();
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -331,10 +333,16 @@ export default function StaffDashboard() {
             <img src={logo} alt="Logo" className="h-8 w-8" />
             <h1 className="text-xl font-bold">Staff Dashboard</h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/import")}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import Data
+            </Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
