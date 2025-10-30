@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import logo from "@/assets/logo.png";
 
 export default function UserDashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [application, setApplication] = useState<any>(null);
   const [loan, setLoan] = useState<any>(null);
@@ -76,10 +76,17 @@ export default function UserDashboard() {
             <img src={logo} alt="Flexi Loans Logo" className="h-8 w-8" />
             <h1 className="text-xl font-bold">Flexi Loans</h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/staff")}>
+                Admin Panel
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
