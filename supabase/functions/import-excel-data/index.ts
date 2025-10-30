@@ -70,8 +70,8 @@ Deno.serve(async (req) => {
     console.log(`Received ${importData.clients?.length || 0} clients and ${importData.loans?.length || 0} loans`)
     
     const results = {
-      clients: { success: 0, errors: [] as string[] },
-      loans: { success: 0, errors: [] as string[] },
+      clients: { success: 0, errors: [] as string[], skipped: 0 },
+      loans: { success: 0, errors: [] as string[], skipped: 0 },
       payments: { success: 0, errors: [] as string[] }
     }
 
@@ -82,6 +82,20 @@ Deno.serve(async (req) => {
       console.log('Starting client import...')
       for (const client of importData.clients) {
       try {
+        // Check if client already exists
+        const { data: existingProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('id, client_no')
+          .eq('client_no', client.client_no)
+          .maybeSingle()
+        
+        if (existingProfile) {
+          console.log(`⊘ Skipping client ${client.client_no} - ${client.full_name} (already exists)`)
+          clientMap.set(client.client_no, existingProfile.id)
+          results.clients.skipped++
+          continue
+        }
+
         const email = client.email || `client${client.client_no}@placeholder.com`
         const password = `TempPass${client.client_no}!`
 
@@ -126,7 +140,7 @@ Deno.serve(async (req) => {
       }
       }
       
-      console.log(`Client import complete: ${results.clients.success} succeeded, ${results.clients.errors.length} failed`)
+      console.log(`Client import complete: ${results.clients.success} succeeded, ${results.clients.skipped} skipped, ${results.clients.errors.length} failed`)
     }
 
     // Import loans and payments
@@ -153,6 +167,19 @@ Deno.serve(async (req) => {
       
       for (const loanData of importData.loans) {
       try {
+        // Check if loan already exists
+        const { data: existingLoan } = await supabaseAdmin
+          .from('loans')
+          .select('id, loan_no')
+          .eq('loan_no', loanData.loan_no)
+          .maybeSingle()
+        
+        if (existingLoan) {
+          console.log(`⊘ Skipping loan ${loanData.loan_no} (already exists)`)
+          results.loans.skipped++
+          continue
+        }
+
         const userId = clientMap.get(loanData.client_no)
         if (!userId) {
           throw new Error(`Client ${loanData.client_no} not found in ${mode === 'loans' ? 'database' : 'imported clients'}`)
@@ -246,7 +273,7 @@ Deno.serve(async (req) => {
       }
     }
     
-    console.log(`Import complete! Clients: ${results.clients.success}, Loans: ${results.loans.success}, Payments: ${results.payments.success}`)
+    console.log(`Import complete! Clients: ${results.clients.success} imported, ${results.clients.skipped} skipped | Loans: ${results.loans.success} imported, ${results.loans.skipped} skipped | Payments: ${results.payments.success}`)
     console.log(`Errors - Clients: ${results.clients.errors.length}, Loans: ${results.loans.errors.length}, Payments: ${results.payments.errors.length}`)
 
     return new Response(

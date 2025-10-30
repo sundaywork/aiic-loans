@@ -136,7 +136,7 @@ export default function ImportData() {
 
       toast({
         title: "Client import completed (10 rows)",
-        description: `Successfully imported: ${data.clients.success} clients`
+        description: `${data.clients.success} imported, ${data.clients.skipped} skipped`
       });
 
       if (data.clients.errors.length > 0) {
@@ -177,7 +177,7 @@ export default function ImportData() {
 
       toast({
         title: "Loan import completed (10 rows)",
-        description: `Successfully imported: ${data.loans.success} loans, ${data.payments.success} payments`
+        description: `${data.loans.success} loans imported, ${data.loans.skipped} skipped, ${data.payments.success} payments`
       });
 
       if (data.loans.errors.length > 0 || data.payments.errors.length > 0) {
