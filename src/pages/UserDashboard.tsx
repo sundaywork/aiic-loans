@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DollarSign, LogOut, Calendar, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
+import logo from "@/assets/logo.png";
 
 export default function UserDashboard() {
   const { user, signOut } = useAuth();
@@ -71,8 +72,8 @@ export default function UserDashboard() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Taxi Driver Loans Logo" className="h-8 w-8" />
             <h1 className="text-xl font-bold">Taxi Driver Loans</h1>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut}>

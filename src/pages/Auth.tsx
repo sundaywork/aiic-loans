@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { DollarSign } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8">
-          <DollarSign className="h-10 w-10 text-primary mr-2" />
+          <img src={logo} alt="Taxi Driver Loans Logo" className="h-12 w-12 mr-3" />
           <h1 className="text-3xl font-bold text-foreground">Taxi Driver Loans</h1>
         </div>
 

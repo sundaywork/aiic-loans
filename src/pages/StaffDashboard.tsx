@@ -13,7 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { format, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { DollarSign, LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search } from "lucide-react";
+import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export default function StaffDashboard() {
   const { signOut, user } = useAuth();
@@ -326,8 +327,8 @@ export default function StaffDashboard() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Logo" className="h-8 w-8" />
             <h1 className="text-xl font-bold">Staff Dashboard</h1>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut}>
