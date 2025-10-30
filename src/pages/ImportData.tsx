@@ -4,11 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { ArrowLeft, Upload, FileSpreadsheet, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Upload, FileSpreadsheet, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Convert Excel serial date to YYYY-MM-DD format
 const excelDateToISOString = (serial: any): string => {
@@ -42,6 +53,7 @@ export default function ImportData() {
   const { isAdmin } = useAuth();
   const [uploadingClients, setUploadingClients] = useState(false);
   const [uploadingLoans, setUploadingLoans] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const [preview, setPreview] = useState<any>(null);
   const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
 
@@ -230,6 +242,37 @@ export default function ImportData() {
     }
   };
 
+  const handleCleanData = async () => {
+    setCleaning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("clean-imported-data");
+
+      if (error) throw error;
+
+      toast({
+        title: "Clean completed",
+        description: `Deleted: ${data.payments} payments, ${data.loans} loans, ${data.profiles} profiles`
+      });
+
+      if (data.errors.length > 0) {
+        console.error("Clean errors:", data.errors);
+        toast({
+          title: "Some errors occurred",
+          description: `${data.errors.length} operations failed. Check console for details.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Clean failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setCleaning(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -238,6 +281,35 @@ export default function ImportData() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Staff Dashboard
           </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={cleaning}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {cleaning ? "Cleaning..." : "Clean Imported Data"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clean All Imported Data?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>All payments without notes</li>
+                    <li>All loans with loan numbers</li>
+                    <li>All profiles with client numbers</li>
+                  </ul>
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCleanData} className="bg-destructive hover:bg-destructive/90">
+                  Delete All
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <Card>
