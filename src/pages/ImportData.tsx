@@ -40,7 +40,8 @@ export default function ImportData() {
       }
 
       const clientsRaw: any[] = XLSX.utils.sheet_to_json(clientSheet);
-      const loansRaw: any[] = XLSX.utils.sheet_to_json(loanSheet);
+      // Skip first row (information only) and use second row as headers
+      const loansRaw: any[] = XLSX.utils.sheet_to_json(loanSheet, { range: 1 });
 
       // Process clients
       const clients = clientsRaw.map((row: any) => ({
