@@ -53,8 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (session?.user) {
         checkAdminRole(session.user.id);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

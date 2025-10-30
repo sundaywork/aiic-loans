@@ -52,7 +52,7 @@ export default function StaffDashboard() {
       .from("loan_applications")
       .select(`
         *,
-        profiles:user_id (
+        profiles!loan_applications_user_id_fkey (
           full_name,
           email,
           phone_number
@@ -67,7 +67,7 @@ export default function StaffDashboard() {
       .from("loans")
       .select(`
         *,
-        profiles:user_id (
+        profiles!loans_user_id_fkey (
           full_name,
           email
         )
@@ -81,9 +81,9 @@ export default function StaffDashboard() {
       .from("payments")
       .select(`
         *,
-        loans (
+        loans!payments_loan_id_fkey (
           id,
-          profiles:user_id (
+          profiles!loans_user_id_fkey (
             full_name,
             email
           )
