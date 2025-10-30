@@ -43,55 +43,59 @@ export default function ImportData() {
       // Skip first row (information only) and use second row as headers
       const loansRaw: any[] = XLSX.utils.sheet_to_json(loanSheet, { range: 1 });
 
-      // Process clients
-      const clients = clientsRaw.map((row: any) => ({
-        client_no: row['Client No'] || '',
-        full_name: row['Full Name'] || '',
-        occupation: row['Occupation'] || '',
-        id1_type: row['ID1 Type'] || '',
-        id1_number: row['ID1 Number'] || '',
-        id2_type: row['ID2 Type'] || '',
-        id2_number: row['ID2 Number'] || '',
-        address: row['Address'] || '',
-        phone_number: row['Phone Number'] || '',
-        vehicle_number_plate: row['Vehicle Number Plate'] || '',
-        late_history: row['Late History'] ? parseInt(row['Late History']) : 0
-      }));
+      // Process clients and filter out rows with blank Full Name
+      const clients = clientsRaw
+        .map((row: any) => ({
+          client_no: row['Client No'] || '',
+          full_name: row['Full Name'] || '',
+          occupation: row['Occupation'] || '',
+          id1_type: row['ID1 Type'] || '',
+          id1_number: row['ID1 Number'] || '',
+          id2_type: row['ID2 Type'] || '',
+          id2_number: row['ID2 Number'] || '',
+          address: row['Address'] || '',
+          phone_number: row['Phone Number'] || '',
+          vehicle_number_plate: row['Vehicle Number Plate'] || '',
+          late_history: row['Late History'] ? parseInt(row['Late History']) : 0
+        }))
+        .filter((client: any) => client.full_name.trim() !== '');
 
-      // Process loans with dynamic payment columns
-      const loans = loansRaw.map((row: any) => {
-        const payments: Array<{ date: string; amount: number }> = [];
-        
-        // Extract payment columns (all columns after fixed columns that contain dates)
-        Object.keys(row).forEach((key) => {
-          // Check if column is a date format and has a value
-          if (key.includes('/') && row[key] && !isNaN(parseFloat(row[key]))) {
-            const amount = parseFloat(row[key].toString().replace(/[$,]/g, ''));
-            if (amount > 0) {
-              payments.push({ date: key, amount });
+      // Process loans with dynamic payment columns and filter out rows with blank Client No
+      const loans = loansRaw
+        .map((row: any) => {
+          const payments: Array<{ date: string; amount: number }> = [];
+          
+          // Extract payment columns (all columns after fixed columns that contain dates)
+          Object.keys(row).forEach((key) => {
+            // Check if column is a date format and has a value
+            if (key.includes('/') && row[key] && !isNaN(parseFloat(row[key]))) {
+              const amount = parseFloat(row[key].toString().replace(/[$,]/g, ''));
+              if (amount > 0) {
+                payments.push({ date: key, amount });
+              }
             }
-          }
-        });
+          });
 
-        return {
-          loan_no: row['Loan No.'] || '',
-          client_no: row['Client No.'] || '',
-          client_name: row['Client Name'] || '',
-          amount: parseFloat(row['Amount'] || 0),
-          interests: parseFloat(row['Interests'] || 0),
-          total_amount: parseFloat(row['Total Amount'] || 0),
-          terms_weeks: parseInt(row['Terms(Week)'] || 0),
-          weekly_repay_min: parseFloat(row['Weekly repay min'] || 0),
-          signed_date: row['Signed Date'] || '',
-          paid_by: row['Paid By'] || '',
-          start_date: row['Start Date'] || '',
-          first_repayment_date: row['First repayment date'] || '',
-          end_date: row['End Date'] || '',
-          status: row['Status'] || '',
-          remain_repay_amount: parseFloat((row['Remain Repay Amount'] || '0').toString().replace(/[$,]/g, '')),
-          payments
-        };
-      });
+          return {
+            loan_no: row['Loan No.'] || '',
+            client_no: row['Client No.'] || '',
+            client_name: row['Client Name'] || '',
+            amount: parseFloat(row['Amount'] || 0),
+            interests: parseFloat(row['Interests'] || 0),
+            total_amount: parseFloat(row['Total Amount'] || 0),
+            terms_weeks: parseInt(row['Terms(Week)'] || 0),
+            weekly_repay_min: parseFloat(row['Weekly repay min'] || 0),
+            signed_date: row['Signed Date'] || '',
+            paid_by: row['Paid By'] || '',
+            start_date: row['Start Date'] || '',
+            first_repayment_date: row['First repayment date'] || '',
+            end_date: row['End Date'] || '',
+            status: row['Status'] || '',
+            remain_repay_amount: parseFloat((row['Remain Repay Amount'] || '0').toString().replace(/[$,]/g, '')),
+            payments
+          };
+        })
+        .filter((loan: any) => loan.client_no.trim() !== '');
 
       setPreview({
         clients,
