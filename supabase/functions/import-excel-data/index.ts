@@ -50,6 +50,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Starting import process...')
+    
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -62,6 +64,8 @@ Deno.serve(async (req) => {
     )
 
     const importData: ImportData = await req.json()
+    console.log(`Received ${importData.clients?.length || 0} clients and ${importData.loans?.length || 0} loans`)
+    
     const results = {
       clients: { success: 0, errors: [] as string[] },
       loans: { success: 0, errors: [] as string[] },
@@ -69,6 +73,7 @@ Deno.serve(async (req) => {
     }
 
     // Import clients first
+    console.log('Starting client import...')
     const clientMap = new Map<string, string>()
     
     for (const client of importData.clients) {
@@ -108,13 +113,18 @@ Deno.serve(async (req) => {
         if (profileError) throw profileError
 
         results.clients.success++
+        console.log(`✓ Imported client ${client.client_no} - ${client.full_name}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`✗ Failed to import client ${client.client_no}: ${message}`)
         results.clients.errors.push(`${client.client_no} - ${client.full_name}: ${message}`)
       }
     }
+    
+    console.log(`Client import complete: ${results.clients.success} succeeded, ${results.clients.errors.length} failed`)
 
     // Import loans and payments
+    console.log('Starting loan import...')
     for (const loanData of importData.loans) {
       try {
         const userId = clientMap.get(loanData.client_no)
@@ -169,8 +179,10 @@ Deno.serve(async (req) => {
         if (loanError) throw loanError
 
         results.loans.success++
+        console.log(`✓ Imported loan ${loanData.loan_no}`)
 
         // Import payments for this loan
+        console.log(`  Importing ${loanData.payments.length} payments for loan ${loanData.loan_no}`)
         let runningBalance = loanData.total_amount
         for (const payment of loanData.payments) {
           try {
@@ -189,14 +201,20 @@ Deno.serve(async (req) => {
             results.payments.success++
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error'
+            console.error(`  ✗ Failed payment for ${loanData.loan_no} on ${payment.date}: ${message}`)
             results.payments.errors.push(`${loanData.loan_no} - ${payment.date}: ${message}`)
           }
         }
+        console.log(`  ✓ Imported ${loanData.payments.length} payments for loan ${loanData.loan_no}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`✗ Failed to import loan ${loanData.loan_no}: ${message}`)
         results.loans.errors.push(`${loanData.loan_no} - ${loanData.client_name}: ${message}`)
       }
     }
+    
+    console.log(`Import complete! Clients: ${results.clients.success}, Loans: ${results.loans.success}, Payments: ${results.payments.success}`)
+    console.log(`Errors - Clients: ${results.clients.errors.length}, Loans: ${results.loans.errors.length}, Payments: ${results.payments.errors.length}`)
 
     return new Response(
       JSON.stringify(results),
@@ -204,6 +222,8 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Import failed with error:', message)
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
     return new Response(
       JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
