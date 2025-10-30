@@ -67,8 +67,8 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="Taxi Driver Loans Logo" className="h-12 w-12 mr-3" />
-          <h1 className="text-3xl font-bold text-foreground">Taxi Driver Loans</h1>
+          <img src={logo} alt="Flexi Loans Logo" className="h-12 w-12 mr-3" />
+          <h1 className="text-3xl font-bold text-foreground">Flexi Loans</h1>
         </div>
 
         <Card>

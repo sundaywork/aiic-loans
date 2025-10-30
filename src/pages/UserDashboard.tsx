@@ -73,8 +73,8 @@ export default function UserDashboard() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Taxi Driver Loans Logo" className="h-8 w-8" />
-            <h1 className="text-xl font-bold">Taxi Driver Loans</h1>
+            <img src={logo} alt="Flexi Loans Logo" className="h-8 w-8" />
+            <h1 className="text-xl font-bold">Flexi Loans</h1>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut}>
             <LogOut className="h-4 w-4 mr-2" />
