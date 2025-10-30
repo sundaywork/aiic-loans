@@ -42,6 +42,7 @@ interface LoanData {
 interface ImportData {
   clients: ClientData[]
   loans: LoanData[]
+  mode?: 'clients' | 'loans' | 'all'
 }
 
 Deno.serve(async (req) => {
@@ -64,6 +65,8 @@ Deno.serve(async (req) => {
     )
 
     const importData: ImportData = await req.json()
+    const mode = importData.mode || 'all'
+    console.log(`Import mode: ${mode}`)
     console.log(`Received ${importData.clients?.length || 0} clients and ${importData.loans?.length || 0} loans`)
     
     const results = {
@@ -73,10 +76,11 @@ Deno.serve(async (req) => {
     }
 
     // Import clients first
-    console.log('Starting client import...')
     const clientMap = new Map<string, string>()
     
-    for (const client of importData.clients) {
+    if (mode === 'clients' || mode === 'all') {
+      console.log('Starting client import...')
+      for (const client of importData.clients) {
       try {
         const email = client.email || `client${client.client_no}@placeholder.com`
         const password = `TempPass${client.client_no}!`
@@ -117,18 +121,42 @@ Deno.serve(async (req) => {
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
         console.error(`✗ Failed to import client ${client.client_no}: ${message}`)
+        console.error('Full error object:', JSON.stringify(error, null, 2))
         results.clients.errors.push(`${client.client_no} - ${client.full_name}: ${message}`)
       }
+      }
+      
+      console.log(`Client import complete: ${results.clients.success} succeeded, ${results.clients.errors.length} failed`)
     }
-    
-    console.log(`Client import complete: ${results.clients.success} succeeded, ${results.clients.errors.length} failed`)
 
     // Import loans and payments
-    console.log('Starting loan import...')
-    for (const loanData of importData.loans) {
+    if (mode === 'loans' || mode === 'all') {
+      console.log('Starting loan import...')
+      
+      // If importing loans only, fetch existing client mappings
+      if (mode === 'loans') {
+        console.log('Fetching existing client mappings...')
+        const { data: profiles, error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .select('client_no, id')
+          .not('client_no', 'is', null)
+        
+        if (profileError) {
+          console.error('Failed to fetch client mappings:', profileError)
+        } else {
+          for (const profile of profiles || []) {
+            clientMap.set(profile.client_no, profile.id)
+          }
+          console.log(`Loaded ${clientMap.size} existing client mappings`)
+        }
+      }
+      
+      for (const loanData of importData.loans) {
       try {
         const userId = clientMap.get(loanData.client_no)
-        if (!userId) throw new Error(`Client ${loanData.client_no} not found`)
+        if (!userId) {
+          throw new Error(`Client ${loanData.client_no} not found in ${mode === 'loans' ? 'database' : 'imported clients'}`)
+        }
 
         // Create loan application first
         const { data: loanApp, error: appError } = await supabaseAdmin
@@ -209,7 +237,12 @@ Deno.serve(async (req) => {
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
         console.error(`✗ Failed to import loan ${loanData.loan_no}: ${message}`)
+        console.error('Full error object:', JSON.stringify(error, null, 2))
+        if (error && typeof error === 'object' && 'code' in error) {
+          console.error('Error code:', error.code)
+        }
         results.loans.errors.push(`${loanData.loan_no} - ${loanData.client_name}: ${message}`)
+      }
       }
     }
     

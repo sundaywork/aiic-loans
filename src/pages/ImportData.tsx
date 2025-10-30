@@ -116,27 +116,62 @@ export default function ImportData() {
     }
   };
 
-  const handleImport = async () => {
+  const handleImportClients = async () => {
     if (!preview) return;
 
     setUploading(true);
     try {
       const { data, error } = await supabase.functions.invoke("import-excel-data", {
-        body: preview
+        body: { ...preview, mode: 'clients' }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Import completed",
-        description: `Successfully imported: ${data.clients.success} clients, ${data.loans.success} loans, ${data.payments.success} payments`
+        title: "Client import completed",
+        description: `Successfully imported: ${data.clients.success} clients`
       });
 
-      if (data.clients.errors.length > 0 || data.loans.errors.length > 0 || data.payments.errors.length > 0) {
-        console.error("Import errors:", data);
+      if (data.clients.errors.length > 0) {
+        console.error("Client import errors:", data.clients.errors);
         toast({
           title: "Some errors occurred",
-          description: `${data.clients.errors.length + data.loans.errors.length + data.payments.errors.length} items failed to import. Check console for details.`,
+          description: `${data.clients.errors.length} clients failed to import. Check console for details.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Client import failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImportLoans = async () => {
+    if (!preview) return;
+
+    setUploading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("import-excel-data", {
+        body: { ...preview, mode: 'loans' }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Loan import completed",
+        description: `Successfully imported: ${data.loans.success} loans, ${data.payments.success} payments`
+      });
+
+      if (data.loans.errors.length > 0 || data.payments.errors.length > 0) {
+        console.error("Loan import errors:", data);
+        toast({
+          title: "Some errors occurred",
+          description: `${data.loans.errors.length + data.payments.errors.length} items failed to import. Check console for details.`,
           variant: "destructive"
         });
       }
@@ -145,7 +180,7 @@ export default function ImportData() {
       navigate("/staff");
     } catch (error) {
       toast({
-        title: "Import failed",
+        title: "Loan import failed",
         description: error.message,
         variant: "destructive"
       });
@@ -344,9 +379,14 @@ export default function ImportData() {
                   </ul>
                 </div>
 
-                <Button onClick={handleImport} disabled={uploading} className="w-full">
-                  {uploading ? "Importing..." : "Import Data"}
-                </Button>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button onClick={handleImportClients} disabled={uploading} variant="outline">
+                    {uploading ? "Importing..." : "Import Clients Only"}
+                  </Button>
+                  <Button onClick={handleImportLoans} disabled={uploading}>
+                    {uploading ? "Importing..." : "Import Loans & Payments"}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
