@@ -22,6 +22,7 @@ export default function StaffDashboard() {
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [fundDialogOpen, setFundDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [reviewData, setReviewData] = useState({
@@ -92,6 +93,12 @@ export default function StaffDashboard() {
       .order("payment_date", { ascending: false });
 
     setPayments(paymentsData || []);
+  };
+
+  const getStorageUrl = (path: string | null) => {
+    if (!path) return null;
+    const { data } = supabase.storage.from("loan-documents").getPublicUrl(path);
+    return data.publicUrl;
   };
 
   const handleReviewApplication = (app: any) => {
@@ -299,6 +306,17 @@ export default function StaffDashboard() {
                       </div>
 
                       <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => {
+                            setSelectedApp(app);
+                            setDetailsDialogOpen(true);
+                          }}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => handleReviewApplication(app)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Review
@@ -590,6 +608,150 @@ export default function StaffDashboard() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Application Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Application Details</DialogTitle>
+            <DialogDescription>Complete information for this loan application</DialogDescription>
+          </DialogHeader>
+
+          {selectedApp && (
+            <div className="space-y-6">
+              {/* Applicant Information */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Applicant Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Full Name</Label>
+                    <p className="font-medium">{selectedApp.profiles?.full_name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Email</Label>
+                    <p className="font-medium">{selectedApp.profiles?.email || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Phone Number</Label>
+                    <p className="font-medium">{selectedApp.profiles?.phone_number || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div className="mt-1">
+                      <StatusBadge status={selectedApp.status} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loan Details */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Loan Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Requested Amount</Label>
+                    <p className="font-medium text-lg">${selectedApp.requested_amount}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Interest Rate (APR)</Label>
+                    <p className="font-medium">{selectedApp.interest_rate}%</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Terms</Label>
+                    <p className="font-medium">{selectedApp.terms_weeks} weeks</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Weekly Payment</Label>
+                    <p className="font-medium">${selectedApp.weekly_payment?.toFixed(2)}</p>
+                  </div>
+                  {selectedApp.approved_amount && (
+                    <div>
+                      <Label className="text-muted-foreground">Approved Amount</Label>
+                      <p className="font-medium text-green-600">${selectedApp.approved_amount}</p>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-muted-foreground">Submitted Date</Label>
+                    <p className="font-medium">{format(new Date(selectedApp.submitted_at), "PPP")}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Review Notes */}
+              {(selectedApp.rejection_reason || selectedApp.pending_notes) && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Review Notes</h3>
+                  {selectedApp.rejection_reason && (
+                    <div>
+                      <Label className="text-muted-foreground">Rejection Reason</Label>
+                      <p className="font-medium text-destructive">{selectedApp.rejection_reason}</p>
+                    </div>
+                  )}
+                  {selectedApp.pending_notes && (
+                    <div>
+                      <Label className="text-muted-foreground">Pending Notes</Label>
+                      <p className="font-medium">{selectedApp.pending_notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Uploaded Documents */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Uploaded Documents</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedApp.driver_license_url && (
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Driver's License</Label>
+                      <img 
+                        src={getStorageUrl(selectedApp.driver_license_url)} 
+                        alt="Driver's License"
+                        className="w-full rounded-lg border object-cover max-h-64"
+                      />
+                    </div>
+                  )}
+                  {selectedApp.taxi_front_url && (
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Taxi Front Photo</Label>
+                      <img 
+                        src={getStorageUrl(selectedApp.taxi_front_url)} 
+                        alt="Taxi Front"
+                        className="w-full rounded-lg border object-cover max-h-64"
+                      />
+                    </div>
+                  )}
+                  {selectedApp.taxi_back_url && (
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Taxi Back Photo</Label>
+                      <img 
+                        src={getStorageUrl(selectedApp.taxi_back_url)} 
+                        alt="Taxi Back"
+                        className="w-full rounded-lg border object-cover max-h-64"
+                      />
+                    </div>
+                  )}
+                  {selectedApp.face_photo_url && (
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Face Photo</Label>
+                      <img 
+                        src={getStorageUrl(selectedApp.face_photo_url)} 
+                        alt="Face Photo"
+                        className="w-full rounded-lg border object-cover max-h-64"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
