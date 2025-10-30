@@ -14,11 +14,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 const excelDateToISOString = (serial: any): string => {
   if (!serial) return '';
   
-  // If it's already a string date, return it
+  // If it's already a string date in DD/MM/YYYY format
   if (typeof serial === 'string' && serial.includes('/')) {
     const parts = serial.split('/');
     if (parts.length === 3) {
-      const [month, day, year] = parts;
+      const [day, month, year] = parts; // English format: DD/MM/YYYY
       return `${year.padStart(4, '20')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     }
     return serial;
