@@ -219,9 +219,14 @@ export default function StaffDashboard() {
       const startDate = new Date(fundData.start_date);
       const principal = parseFloat(app.approved_amount);
       const interestRate = app.interest_rate;
-      const interest = principal * (interestRate / 100);
-      const totalAmount = principal + interest;
-      const weeklyPayment = totalAmount / app.terms_weeks;
+      
+      // Use cents to avoid floating-point errors
+      const principalCents = Math.round(principal * 100);
+      const interestCents = Math.round(principalCents * (interestRate / 100));
+      const totalAmountCents = principalCents + interestCents;
+      const totalAmount = (totalAmountCents / 100).toFixed(2);
+      const weeklyPaymentCents = Math.round(totalAmountCents / app.terms_weeks);
+      const weeklyPayment = (weeklyPaymentCents / 100).toFixed(2);
 
       const nextPaymentDate = new Date(startDate);
       nextPaymentDate.setDate(nextPaymentDate.getDate() + 7);
@@ -231,10 +236,10 @@ export default function StaffDashboard() {
         user_id: app.user_id,
         principal_amount: principal,
         interest_rate: interestRate,
-        total_amount: totalAmount,
-        remaining_balance: totalAmount,
+        total_amount: parseFloat(totalAmount),
+        remaining_balance: parseFloat(totalAmount),
         terms_weeks: app.terms_weeks,
-        weekly_payment: weeklyPayment,
+        weekly_payment: parseFloat(weeklyPayment),
         terms_remaining: app.terms_weeks,
         start_date: fundData.start_date,
         next_payment_date: nextPaymentDate.toISOString().split("T")[0],
@@ -265,17 +270,21 @@ export default function StaffDashboard() {
       const loan = loans.find((l) => l.id === paymentData.loan_id);
       if (!loan) return;
 
-      const paymentAmount = parseFloat(paymentData.amount);
-      const newBalance = Math.max(0, loan.remaining_balance - paymentAmount);
-      const termsRemaining = Math.ceil(newBalance / loan.weekly_payment);
+      // Convert to cents to avoid floating-point errors
+      const paymentAmountCents = Math.round(parseFloat(paymentData.amount) * 100);
+      const currentBalanceCents = Math.round(parseFloat(loan.remaining_balance) * 100);
+      const newBalanceCents = Math.max(0, currentBalanceCents - paymentAmountCents);
+      const newBalance = (newBalanceCents / 100).toFixed(2);
+      
+      const termsRemaining = newBalanceCents === 0 ? 0 : Math.ceil(newBalanceCents / (Math.round(parseFloat(loan.weekly_payment) * 100)));
 
       // Record payment
       const { error: paymentError } = await supabase.from("payments").insert({
         loan_id: paymentData.loan_id,
         user_id: loan.user_id,
-        amount: paymentAmount,
+        amount: parseFloat(paymentData.amount),
         payment_date: paymentData.payment_date,
-        remaining_balance_after: newBalance,
+        remaining_balance_after: parseFloat(newBalance),
         notes: paymentData.notes,
         recorded_by: user!.id,
       });
@@ -289,10 +298,10 @@ export default function StaffDashboard() {
       const { error: loanError } = await supabase
         .from("loans")
         .update({
-          remaining_balance: newBalance,
+          remaining_balance: parseFloat(newBalance),
           terms_remaining: termsRemaining,
           next_payment_date: nextPaymentDate.toISOString().split("T")[0],
-          status: newBalance === 0 ? "completed" : "active",
+          status: parseFloat(newBalance) === 0 ? "completed" : "active",
         })
         .eq("id", paymentData.loan_id);
 
