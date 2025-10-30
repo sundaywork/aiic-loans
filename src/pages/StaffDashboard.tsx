@@ -95,9 +95,12 @@ export default function StaffDashboard() {
     setPayments(paymentsData || []);
   };
 
-  const getStorageUrl = (path: string | null) => {
-    if (!path) return null;
-    const { data } = supabase.storage.from("loan-documents").getPublicUrl(path);
+  const getStorageUrl = (urlOrPath: string | null) => {
+    if (!urlOrPath) return null;
+    // If it's already a full URL, return it directly
+    if (urlOrPath.startsWith('http')) return urlOrPath;
+    // Otherwise, generate the public URL
+    const { data } = supabase.storage.from("loan-documents").getPublicUrl(urlOrPath);
     return data.publicUrl;
   };
 
