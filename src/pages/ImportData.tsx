@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { ArrowLeft, Upload, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Upload, FileSpreadsheet, ChevronDown, ChevronRight } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function ImportData() {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export default function ImportData() {
   const { isAdmin } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<any>(null);
+  const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
 
   if (!isAdmin) {
     navigate("/dashboard");
@@ -184,24 +187,152 @@ export default function ImportData() {
             </div>
 
             {preview && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">{preview.clients.length}</CardTitle>
-                      <CardDescription>Clients</CardDescription>
+                      <CardDescription>Total Clients</CardDescription>
                     </CardHeader>
                   </Card>
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">{preview.loans.length}</CardTitle>
-                      <CardDescription>Loans</CardDescription>
+                      <CardDescription>Total Loans</CardDescription>
                     </CardHeader>
                   </Card>
                 </div>
 
+                {/* Clients Preview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Clients Preview (First 10)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Client No</TableHead>
+                            <TableHead>Full Name</TableHead>
+                            <TableHead>Occupation</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Address</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {preview.clients.slice(0, 10).map((client: any, idx: number) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-medium">{client.client_no}</TableCell>
+                              <TableCell>{client.full_name}</TableCell>
+                              <TableCell>{client.occupation}</TableCell>
+                              <TableCell>{client.phone_number}</TableCell>
+                              <TableCell>{client.address}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {preview.clients.length > 10 && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        ...and {preview.clients.length - 10} more clients
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Loans Preview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Loans Preview (First 10)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {preview.loans.slice(0, 10).map((loan: any, idx: number) => (
+                        <Collapsible
+                          key={idx}
+                          open={expandedLoan === loan.loan_no}
+                          onOpenChange={(open) => setExpandedLoan(open ? loan.loan_no : null)}
+                        >
+                          <Card>
+                            <CollapsibleTrigger className="w-full">
+                              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4 text-left">
+                                    {expandedLoan === loan.loan_no ? (
+                                      <ChevronDown className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4" />
+                                    )}
+                                    <div>
+                                      <CardTitle className="text-sm">
+                                        Loan #{loan.loan_no} - {loan.client_name}
+                                      </CardTitle>
+                                      <CardDescription className="text-xs">
+                                        Amount: ${loan.amount.toFixed(2)} | Terms: {loan.terms_weeks}w | 
+                                        Status: {loan.status} | {loan.payments.length} payments
+                                      </CardDescription>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <CardContent className="pt-0">
+                                <div className="space-y-2">
+                                  <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+                                    <div>
+                                      <span className="font-semibold">Total Amount:</span> ${loan.total_amount.toFixed(2)}
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold">Interest:</span> ${loan.interests.toFixed(2)}
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold">Weekly Payment:</span> ${loan.weekly_repay_min.toFixed(2)}
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold">Remaining:</span> ${loan.remain_repay_amount.toFixed(2)}
+                                    </div>
+                                  </div>
+                                  
+                                  <h5 className="font-semibold text-sm mb-2">Payments ({loan.payments.length})</h5>
+                                  <div className="overflow-x-auto">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Date</TableHead>
+                                          <TableHead className="text-right">Amount</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {loan.payments.map((payment: any, pidx: number) => (
+                                          <TableRow key={pidx}>
+                                            <TableCell className="text-xs">{payment.date}</TableCell>
+                                            <TableCell className="text-right text-xs">
+                                              ${payment.amount.toFixed(2)}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </CollapsibleContent>
+                          </Card>
+                        </Collapsible>
+                      ))}
+                    </div>
+                    {preview.loans.length > 10 && (
+                      <p className="text-sm text-muted-foreground mt-4">
+                        ...and {preview.loans.length - 10} more loans
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
                 <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-semibold mb-2">Expected Excel Format:</h4>
+                  <h4 className="font-semibold mb-2">Excel Format Requirements:</h4>
                   <ul className="text-sm space-y-1 list-disc list-inside">
                     <li><strong>Client List sheet:</strong> Client No, Full Name, Occupation, ID1/ID2 details, Address, Phone Number, Vehicle Number Plate, Late History</li>
                     <li><strong>Loan List sheet:</strong> Fixed columns (Loan No., Client No., Amount, Terms, etc.) + Dynamic payment date columns</li>
