@@ -10,6 +10,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+// Convert Excel serial date to YYYY-MM-DD format
+const excelDateToISOString = (serial: any): string => {
+  if (!serial) return '';
+  
+  // If it's already a string date, return it
+  if (typeof serial === 'string' && serial.includes('/')) {
+    const parts = serial.split('/');
+    if (parts.length === 3) {
+      const [month, day, year] = parts;
+      return `${year.padStart(4, '20')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return serial;
+  }
+  
+  // Convert Excel serial number to date
+  const excelEpoch = new Date(1899, 11, 30); // Excel's epoch
+  const days = Number(serial);
+  const date = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000);
+  
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+};
+
 export default function ImportData() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -72,7 +98,9 @@ export default function ImportData() {
             if (key.includes('/') && row[key] && !isNaN(parseFloat(row[key]))) {
               const amount = parseFloat(row[key].toString().replace(/[$,]/g, ''));
               if (amount > 0) {
-                payments.push({ date: key, amount });
+                // Convert date header to ISO format
+                const dateStr = excelDateToISOString(key);
+                payments.push({ date: dateStr, amount });
               }
             }
           });
@@ -86,11 +114,11 @@ export default function ImportData() {
             total_amount: parseFloat(row['Total Amount'] || 0),
             terms_weeks: parseInt(row['Terms(Week)'] || 0),
             weekly_repay_min: parseFloat(row['Weekly repay min'] || 0),
-            signed_date: row['Signed Date'] || '',
+            signed_date: excelDateToISOString(row['Signed Date']),
             paid_by: row['Paid By'] || '',
-            start_date: row['Start Date'] || '',
-            first_repayment_date: row['First repayment date'] || '',
-            end_date: row['End Date'] || '',
+            start_date: excelDateToISOString(row['Start Date']),
+            first_repayment_date: excelDateToISOString(row['First repayment date']),
+            end_date: excelDateToISOString(row['End Date']),
             status: row['Status'] || '',
             remain_repay_amount: parseFloat((row['Remain Repay Amount'] || '0').toString().replace(/[$,]/g, '')),
             payments
