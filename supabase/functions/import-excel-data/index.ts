@@ -120,21 +120,25 @@ Deno.serve(async (req) => {
         clientMap.set(client.client_no, authData.user.id)
 
         // Update profile with client data
+        const profileData = {
+          client_no: client.client_no,
+          full_name: client.full_name,
+          occupation: client.occupation,
+          id1_type: client.id1_type,
+          id1_number: client.id1_number,
+          id2_type: client.id2_type,
+          id2_number: client.id2_number,
+          address: client.address,
+          phone_number: client.phone_number,
+          vehicle_number_plate: client.vehicle_number_plate,
+          late_history: client.late_history
+        }
+        
+        console.log(`Inserting profile data:`, JSON.stringify(profileData))
+        
         const { error: profileError } = await supabaseAdmin
           .from('profiles')
-          .update({
-            client_no: client.client_no,
-            full_name: client.full_name,
-            occupation: client.occupation,
-            id1_type: client.id1_type,
-            id1_number: client.id1_number,
-            id2_type: client.id2_type,
-            id2_number: client.id2_number,
-            address: client.address,
-            phone_number: client.phone_number,
-            vehicle_number_plate: client.vehicle_number_plate,
-            late_history: client.late_history
-          })
+          .update(profileData)
           .eq('id', authData.user.id)
 
         if (profileError) throw profileError
@@ -212,15 +216,19 @@ Deno.serve(async (req) => {
         }))
 
         // Create loan application first
+        const loanAppData = {
+          user_id: userId,
+          requested_amount: loanData.amount,
+          approved_amount: loanData.amount,
+          terms_weeks: loanData.terms_weeks,
+          status: 'approved'
+        }
+        
+        console.log(`Inserting loan_application:`, JSON.stringify(loanAppData))
+        
         const { data: loanApp, error: appError } = await supabaseAdmin
           .from('loan_applications')
-          .insert({
-            user_id: userId,
-            requested_amount: loanData.amount,
-            approved_amount: loanData.amount,
-            terms_weeks: loanData.terms_weeks,
-            status: 'approved'
-          })
+          .insert(loanAppData)
           .select('id')
           .single()
 
@@ -233,27 +241,31 @@ Deno.serve(async (req) => {
         const termsRemaining = Math.max(0, loanData.terms_weeks - weeksPassed)
 
         // Create loan
+        const loanInsertData = {
+          loan_no: loanData.loan_no,
+          application_id: loanApp.id,
+          user_id: userId,
+          principal_amount: loanData.amount,
+          interests: loanData.interests,
+          interest_rate: loanData.interests > 0 ? (loanData.interests / loanData.amount * 100) : 0,
+          total_amount: loanData.total_amount,
+          terms_weeks: loanData.terms_weeks,
+          terms_remaining: termsRemaining,
+          weekly_payment: loanData.weekly_repay_min,
+          signed_date: loanData.signed_date,
+          paid_by: loanData.paid_by,
+          start_date: loanData.start_date,
+          next_payment_date: loanData.first_repayment_date,
+          end_date: loanData.end_date,
+          status: loanData.status.toLowerCase().includes('finish') ? 'completed' : 'active',
+          remaining_balance: remainingBalance
+        }
+        
+        console.log(`Inserting loan:`, JSON.stringify(loanInsertData))
+        
         const { data: loan, error: loanError } = await supabaseAdmin
           .from('loans')
-          .insert({
-            loan_no: loanData.loan_no,
-            application_id: loanApp.id,
-            user_id: userId,
-            principal_amount: loanData.amount,
-            interests: loanData.interests,
-            interest_rate: loanData.interests > 0 ? (loanData.interests / loanData.amount * 100) : 0,
-            total_amount: loanData.total_amount,
-            terms_weeks: loanData.terms_weeks,
-            terms_remaining: termsRemaining,
-            weekly_payment: loanData.weekly_repay_min,
-            signed_date: loanData.signed_date,
-            paid_by: loanData.paid_by,
-            start_date: loanData.start_date,
-            next_payment_date: loanData.first_repayment_date,
-            end_date: loanData.end_date,
-            status: loanData.status.toLowerCase().includes('finish') ? 'completed' : 'active',
-            remaining_balance: remainingBalance
-          })
+          .insert(loanInsertData)
           .select('id')
           .single()
 
@@ -268,15 +280,19 @@ Deno.serve(async (req) => {
         for (const payment of loanData.payments) {
           try {
             runningBalance -= payment.amount
+            const paymentData = {
+              loan_id: loan.id,
+              user_id: userId,
+              amount: payment.amount,
+              payment_date: payment.date,
+              remaining_balance_after: runningBalance
+            }
+            
+            console.log(`Inserting payment:`, JSON.stringify(paymentData))
+            
             const { error: paymentError } = await supabaseAdmin
               .from('payments')
-              .insert({
-                loan_id: loan.id,
-                user_id: userId,
-                amount: payment.amount,
-                payment_date: payment.date,
-                remaining_balance_after: runningBalance
-              })
+              .insert(paymentData)
 
             if (paymentError) throw paymentError
             results.payments.success++
