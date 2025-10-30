@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       }
     )
 
-    const { data }: { data: ImportData } = await req.json()
+    const importData: ImportData = await req.json()
     const results = {
       clients: { success: 0, errors: [] as string[] },
       loans: { success: 0, errors: [] as string[] },
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     // Import clients first
     const clientMap = new Map<string, string>()
     
-    for (const client of data.clients) {
+    for (const client of importData.clients) {
       try {
         const email = client.email || `client${client.client_no}@placeholder.com`
         const password = `TempPass${client.client_no}!`
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     }
 
     // Import loans and payments
-    for (const loanData of data.loans) {
+    for (const loanData of importData.loans) {
       try {
         const userId = clientMap.get(loanData.client_no)
         if (!userId) throw new Error(`Client ${loanData.client_no} not found`)
