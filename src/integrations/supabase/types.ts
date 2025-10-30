@@ -92,11 +92,16 @@ export type Database = {
         Row: {
           application_id: string
           created_at: string
+          end_date: string | null
           id: string
           interest_rate: number
+          interests: number | null
+          loan_no: string | null
           next_payment_date: string
+          paid_by: string | null
           principal_amount: number
           remaining_balance: number
+          signed_date: string | null
           start_date: string
           status: string
           terms_remaining: number
@@ -109,11 +114,16 @@ export type Database = {
         Insert: {
           application_id: string
           created_at?: string
+          end_date?: string | null
           id?: string
           interest_rate: number
+          interests?: number | null
+          loan_no?: string | null
           next_payment_date: string
+          paid_by?: string | null
           principal_amount: number
           remaining_balance: number
+          signed_date?: string | null
           start_date: string
           status?: string
           terms_remaining: number
@@ -126,11 +136,16 @@ export type Database = {
         Update: {
           application_id?: string
           created_at?: string
+          end_date?: string | null
           id?: string
           interest_rate?: number
+          interests?: number | null
+          loan_no?: string | null
           next_payment_date?: string
+          paid_by?: string | null
           principal_amount?: number
           remaining_balance?: number
+          signed_date?: string | null
           start_date?: string
           status?: string
           terms_remaining?: number
@@ -212,35 +227,59 @@ export type Database = {
         Row: {
           address: string | null
           bank_account: string | null
+          client_no: string | null
           created_at: string
           email: string
           full_name: string | null
           id: string
+          id1_number: string | null
+          id1_type: string | null
+          id2_number: string | null
+          id2_type: string | null
+          late_history: number | null
+          occupation: string | null
           phone_number: string | null
           taxi_company_id: string | null
           updated_at: string
+          vehicle_number_plate: string | null
         }
         Insert: {
           address?: string | null
           bank_account?: string | null
+          client_no?: string | null
           created_at?: string
           email: string
           full_name?: string | null
           id: string
+          id1_number?: string | null
+          id1_type?: string | null
+          id2_number?: string | null
+          id2_type?: string | null
+          late_history?: number | null
+          occupation?: string | null
           phone_number?: string | null
           taxi_company_id?: string | null
           updated_at?: string
+          vehicle_number_plate?: string | null
         }
         Update: {
           address?: string | null
           bank_account?: string | null
+          client_no?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
           id?: string
+          id1_number?: string | null
+          id1_type?: string | null
+          id2_number?: string | null
+          id2_type?: string | null
+          late_history?: number | null
+          occupation?: string | null
           phone_number?: string | null
           taxi_company_id?: string | null
           updated_at?: string
+          vehicle_number_plate?: string | null
         }
         Relationships: [
           {

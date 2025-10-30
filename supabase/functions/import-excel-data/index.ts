@@ -5,28 +5,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+interface ClientData {
+  client_no: string
+  full_name: string
+  email?: string
+  occupation?: string
+  id1_type?: string
+  id1_number?: string
+  id2_type?: string
+  id2_number?: string
+  address?: string
+  phone_number?: string
+  vehicle_number_plate?: string
+  late_history?: number
+}
+
+interface LoanData {
+  loan_no: string
+  client_no: string
+  client_name: string
+  amount: number
+  interests: number
+  total_amount: number
+  terms_weeks: number
+  weekly_repay_min: number
+  signed_date: string
+  paid_by?: string
+  start_date: string
+  first_repayment_date: string
+  end_date: string
+  status: string
+  remain_repay_amount: number
+  payments: Array<{ date: string; amount: number }>
+}
+
 interface ImportData {
-  users: Array<{
-    email: string
-    password: string
-    full_name?: string
-    phone_number?: string
-    address?: string
-    bank_account?: string
-    taxi_company_id?: string
-  }>
-  loanApplications: Array<{
-    user_email: string
-    requested_amount: number
-    terms_weeks: number
-    status?: string
-  }>
-  payments: Array<{
-    user_email: string
-    amount: number
-    payment_date: string
-    notes?: string
-  }>
+  clients: ClientData[]
+  loans: LoanData[]
 }
 
 Deno.serve(async (req) => {
@@ -48,118 +63,138 @@ Deno.serve(async (req) => {
 
     const { data }: { data: ImportData } = await req.json()
     const results = {
-      users: { success: 0, errors: [] as string[] },
-      loanApplications: { success: 0, errors: [] as string[] },
+      clients: { success: 0, errors: [] as string[] },
+      loans: { success: 0, errors: [] as string[] },
       payments: { success: 0, errors: [] as string[] }
     }
 
-    // Import users first
-    const userIdMap = new Map<string, string>()
+    // Import clients first
+    const clientMap = new Map<string, string>()
     
-    for (const user of data.users) {
+    for (const client of data.clients) {
       try {
+        const email = client.email || `client${client.client_no}@placeholder.com`
+        const password = `TempPass${client.client_no}!`
+
         // Create auth user
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-          email: user.email,
-          password: user.password,
+          email,
+          password,
           email_confirm: true
         })
 
         if (authError) throw authError
 
-        userIdMap.set(user.email, authData.user.id)
+        clientMap.set(client.client_no, authData.user.id)
 
-        // Update profile
+        // Update profile with client data
         const { error: profileError } = await supabaseAdmin
           .from('profiles')
           .update({
-            full_name: user.full_name,
-            phone_number: user.phone_number,
-            address: user.address,
-            bank_account: user.bank_account,
-            taxi_company_id: user.taxi_company_id
+            client_no: client.client_no,
+            full_name: client.full_name,
+            occupation: client.occupation,
+            id1_type: client.id1_type,
+            id1_number: client.id1_number,
+            id2_type: client.id2_type,
+            id2_number: client.id2_number,
+            address: client.address,
+            phone_number: client.phone_number,
+            vehicle_number_plate: client.vehicle_number_plate,
+            late_history: client.late_history
           })
           .eq('id', authData.user.id)
 
         if (profileError) throw profileError
 
-        results.users.success++
+        results.clients.success++
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
-        results.users.errors.push(`${user.email}: ${message}`)
+        results.clients.errors.push(`${client.client_no} - ${client.full_name}: ${message}`)
       }
     }
 
-    // Import loan applications
-    const loanAppMap = new Map<string, string>()
-    
-    for (const app of data.loanApplications) {
+    // Import loans and payments
+    for (const loanData of data.loans) {
       try {
-        const userId = userIdMap.get(app.user_email)
-        if (!userId) throw new Error('User not found')
+        const userId = clientMap.get(loanData.client_no)
+        if (!userId) throw new Error(`Client ${loanData.client_no} not found`)
 
-        const { data: loanApp, error } = await supabaseAdmin
+        // Create loan application first
+        const { data: loanApp, error: appError } = await supabaseAdmin
           .from('loan_applications')
           .insert({
             user_id: userId,
-            requested_amount: app.requested_amount,
-            terms_weeks: app.terms_weeks,
-            status: app.status || 'submitted'
+            requested_amount: loanData.amount,
+            approved_amount: loanData.amount,
+            terms_weeks: loanData.terms_weeks,
+            status: 'approved'
           })
           .select('id')
           .single()
 
-        if (error) throw error
+        if (appError) throw appError
 
-        loanAppMap.set(app.user_email, loanApp.id)
-        results.loanApplications.success++
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        results.loanApplications.errors.push(`${app.user_email}: ${message}`)
-      }
-    }
+        // Calculate remaining balance and terms remaining
+        const totalPaid = loanData.payments.reduce((sum, p) => sum + p.amount, 0)
+        const remainingBalance = loanData.total_amount - totalPaid
+        const weeksPassed = loanData.payments.length
+        const termsRemaining = Math.max(0, loanData.terms_weeks - weeksPassed)
 
-    // Import payments (requires active loans)
-    for (const payment of data.payments) {
-      try {
-        const userId = userIdMap.get(payment.user_email)
-        if (!userId) throw new Error('User not found')
-
-        // Get active loan for user
+        // Create loan
         const { data: loan, error: loanError } = await supabaseAdmin
           .from('loans')
-          .select('id, remaining_balance')
-          .eq('user_id', userId)
-          .eq('status', 'active')
+          .insert({
+            loan_no: loanData.loan_no,
+            application_id: loanApp.id,
+            user_id: userId,
+            principal_amount: loanData.amount,
+            interests: loanData.interests,
+            interest_rate: loanData.interests > 0 ? (loanData.interests / loanData.amount * 100) : 0,
+            total_amount: loanData.total_amount,
+            terms_weeks: loanData.terms_weeks,
+            terms_remaining: termsRemaining,
+            weekly_payment: loanData.weekly_repay_min,
+            signed_date: loanData.signed_date,
+            paid_by: loanData.paid_by,
+            start_date: loanData.start_date,
+            next_payment_date: loanData.first_repayment_date,
+            end_date: loanData.end_date,
+            status: loanData.status.toLowerCase().includes('finish') ? 'completed' : 'active',
+            remaining_balance: remainingBalance
+          })
+          .select('id')
           .single()
 
-        if (loanError) throw new Error('No active loan found')
+        if (loanError) throw loanError
 
-        const newBalance = parseFloat(loan.remaining_balance) - payment.amount
+        results.loans.success++
 
-        const { error: paymentError } = await supabaseAdmin
-          .from('payments')
-          .insert({
-            loan_id: loan.id,
-            user_id: userId,
-            amount: payment.amount,
-            payment_date: payment.payment_date,
-            remaining_balance_after: newBalance,
-            notes: payment.notes
-          })
+        // Import payments for this loan
+        let runningBalance = loanData.total_amount
+        for (const payment of loanData.payments) {
+          try {
+            runningBalance -= payment.amount
+            const { error: paymentError } = await supabaseAdmin
+              .from('payments')
+              .insert({
+                loan_id: loan.id,
+                user_id: userId,
+                amount: payment.amount,
+                payment_date: payment.date,
+                remaining_balance_after: runningBalance
+              })
 
-        if (paymentError) throw paymentError
-
-        // Update loan balance
-        await supabaseAdmin
-          .from('loans')
-          .update({ remaining_balance: newBalance })
-          .eq('id', loan.id)
-
-        results.payments.success++
+            if (paymentError) throw paymentError
+            results.payments.success++
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error'
+            results.payments.errors.push(`${loanData.loan_no} - ${payment.date}: ${message}`)
+          }
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
-        results.payments.errors.push(`${payment.user_email}: ${message}`)
+        results.loans.errors.push(`${loanData.loan_no} - ${loanData.client_name}: ${message}`)
       }
     }
 

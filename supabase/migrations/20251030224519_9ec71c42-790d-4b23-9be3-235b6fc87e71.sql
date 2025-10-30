@@ -1,0 +1,16 @@
+-- Add new columns to profiles table for client data
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS client_no TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS occupation TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id1_type TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id1_number TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id2_type TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id2_number TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vehicle_number_plate TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS late_history INTEGER;
+
+-- Add new columns to loans table
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS loan_no TEXT;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS signed_date DATE;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS paid_by TEXT;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS end_date DATE;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS interests NUMERIC;

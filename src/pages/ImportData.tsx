@@ -29,23 +29,75 @@ export default function ImportData() {
       const workbook = XLSX.read(data);
 
       // Parse sheets
-      const usersSheet = workbook.Sheets["Users"];
-      const appsSheet = workbook.Sheets["Applications"];
-      const paymentsSheet = workbook.Sheets["Payments"];
+      const clientSheet = workbook.Sheets["Client List"];
+      const loanSheet = workbook.Sheets["Loan List"];
 
-      const users = usersSheet ? XLSX.utils.sheet_to_json(usersSheet) : [];
-      const loanApplications = appsSheet ? XLSX.utils.sheet_to_json(appsSheet) : [];
-      const payments = paymentsSheet ? XLSX.utils.sheet_to_json(paymentsSheet) : [];
+      if (!clientSheet || !loanSheet) {
+        throw new Error("Excel file must contain 'Client List' and 'Loan List' sheets");
+      }
 
-      setPreview({
-        users,
-        loanApplications,
-        payments
+      const clientsRaw: any[] = XLSX.utils.sheet_to_json(clientSheet);
+      const loansRaw: any[] = XLSX.utils.sheet_to_json(loanSheet);
+
+      // Process clients
+      const clients = clientsRaw.map((row: any) => ({
+        client_no: row['Client No'] || '',
+        full_name: row['Full Name'] || '',
+        occupation: row['Occupation'] || '',
+        id1_type: row['ID1 Type'] || '',
+        id1_number: row['ID1 Number'] || '',
+        id2_type: row['ID2 Type'] || '',
+        id2_number: row['ID2 Number'] || '',
+        address: row['Address'] || '',
+        phone_number: row['Phone Number'] || '',
+        vehicle_number_plate: row['Vehicle Number Plate'] || '',
+        late_history: row['Late History'] ? parseInt(row['Late History']) : 0
+      }));
+
+      // Process loans with dynamic payment columns
+      const loans = loansRaw.map((row: any) => {
+        const payments: Array<{ date: string; amount: number }> = [];
+        
+        // Extract payment columns (all columns after fixed columns that contain dates)
+        Object.keys(row).forEach((key) => {
+          // Check if column is a date format and has a value
+          if (key.includes('/') && row[key] && !isNaN(parseFloat(row[key]))) {
+            const amount = parseFloat(row[key].toString().replace(/[$,]/g, ''));
+            if (amount > 0) {
+              payments.push({ date: key, amount });
+            }
+          }
+        });
+
+        return {
+          loan_no: row['Loan No.'] || '',
+          client_no: row['Client No.'] || '',
+          client_name: row['Client Name'] || '',
+          amount: parseFloat(row['Amount'] || 0),
+          interests: parseFloat(row['Interests'] || 0),
+          total_amount: parseFloat(row['Total Amount'] || 0),
+          terms_weeks: parseInt(row['Terms(Week)'] || 0),
+          weekly_repay_min: parseFloat(row['Weekly repay min'] || 0),
+          signed_date: row['Signed Date'] || '',
+          paid_by: row['Paid By'] || '',
+          start_date: row['Start Date'] || '',
+          first_repayment_date: row['First repayment date'] || '',
+          end_date: row['End Date'] || '',
+          status: row['Status'] || '',
+          remain_repay_amount: parseFloat((row['Remain Repay Amount'] || '0').toString().replace(/[$,]/g, '')),
+          payments
+        };
       });
 
+      setPreview({
+        clients,
+        loans
+      });
+
+      const totalPayments = loans.reduce((sum, loan) => sum + loan.payments.length, 0);
       toast({
         title: "File parsed successfully",
-        description: `Found ${users.length} users, ${loanApplications.length} applications, ${payments.length} payments`
+        description: `Found ${clients.length} clients, ${loans.length} loans with ${totalPayments} payments`
       });
     } catch (error) {
       toast({
@@ -62,39 +114,23 @@ export default function ImportData() {
     setUploading(true);
     try {
       const { data, error } = await supabase.functions.invoke("import-excel-data", {
-        body: {
-          users: preview.users.map((u: any) => ({
-            email: u.email || u.Email,
-            password: u.password || u.Password || "TempPass123!",
-            full_name: u.full_name || u["Full Name"],
-            phone_number: u.phone_number || u["Phone Number"],
-            address: u.address || u.Address,
-            bank_account: u.bank_account || u["Bank Account"]
-          })),
-          loanApplications: preview.loanApplications.map((a: any) => ({
-            user_email: a.user_email || a["User Email"],
-            requested_amount: parseFloat(a.requested_amount || a["Requested Amount"]),
-            terms_weeks: parseInt(a.terms_weeks || a["Terms (Weeks)"]),
-            status: a.status || a.Status || "submitted"
-          })),
-          payments: preview.payments.map((p: any) => ({
-            user_email: p.user_email || p["User Email"],
-            amount: parseFloat(p.amount || p.Amount),
-            payment_date: p.payment_date || p["Payment Date"],
-            notes: p.notes || p.Notes
-          }))
-        }
+        body: preview
       });
 
       if (error) throw error;
 
       toast({
         title: "Import completed",
-        description: `Successfully imported: ${data.users.success} users, ${data.loanApplications.success} applications, ${data.payments.success} payments`
+        description: `Successfully imported: ${data.clients.success} clients, ${data.loans.success} loans, ${data.payments.success} payments`
       });
 
-      if (data.users.errors.length > 0 || data.loanApplications.errors.length > 0 || data.payments.errors.length > 0) {
+      if (data.clients.errors.length > 0 || data.loans.errors.length > 0 || data.payments.errors.length > 0) {
         console.error("Import errors:", data);
+        toast({
+          title: "Some errors occurred",
+          description: `${data.clients.errors.length + data.loans.errors.length + data.payments.errors.length} items failed to import. Check console for details.`,
+          variant: "destructive"
+        });
       }
 
       setPreview(null);
@@ -127,7 +163,7 @@ export default function ImportData() {
               Import Excel Data
             </CardTitle>
             <CardDescription>
-              Upload an Excel file with sheets named "Users", "Applications", and "Payments"
+              Upload an Excel file with sheets named "Client List" and "Loan List"
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -149,23 +185,17 @@ export default function ImportData() {
 
             {preview && (
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-2 gap-4 text-center">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">{preview.users.length}</CardTitle>
-                      <CardDescription>Users</CardDescription>
+                      <CardTitle className="text-lg">{preview.clients.length}</CardTitle>
+                      <CardDescription>Clients</CardDescription>
                     </CardHeader>
                   </Card>
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">{preview.loanApplications.length}</CardTitle>
-                      <CardDescription>Applications</CardDescription>
-                    </CardHeader>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">{preview.payments.length}</CardTitle>
-                      <CardDescription>Payments</CardDescription>
+                      <CardTitle className="text-lg">{preview.loans.length}</CardTitle>
+                      <CardDescription>Loans</CardDescription>
                     </CardHeader>
                   </Card>
                 </div>
@@ -173,9 +203,8 @@ export default function ImportData() {
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="font-semibold mb-2">Expected Excel Format:</h4>
                   <ul className="text-sm space-y-1 list-disc list-inside">
-                    <li><strong>Users sheet:</strong> email, password, full_name, phone_number, address, bank_account</li>
-                    <li><strong>Applications sheet:</strong> user_email, requested_amount, terms_weeks, status</li>
-                    <li><strong>Payments sheet:</strong> user_email, amount, payment_date, notes</li>
+                    <li><strong>Client List sheet:</strong> Client No, Full Name, Occupation, ID1/ID2 details, Address, Phone Number, Vehicle Number Plate, Late History</li>
+                    <li><strong>Loan List sheet:</strong> Fixed columns (Loan No., Client No., Amount, Terms, etc.) + Dynamic payment date columns</li>
                   </ul>
                 </div>
 
