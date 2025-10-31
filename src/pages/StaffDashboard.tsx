@@ -41,6 +41,12 @@ export default function StaffDashboard() {
   const [loanPage, setLoanPage] = useState(1);
   const [loansPerPage, setLoansPerPage] = useState(10);
   const [loanComboboxOpen, setLoanComboboxOpen] = useState(false);
+  const [appViewMode, setAppViewMode] = useState<"list" | "table">("list");
+  const [appSearch, setAppSearch] = useState("");
+  const [appSortColumn, setAppSortColumn] = useState<string | null>(null);
+  const [appSortDirection, setAppSortDirection] = useState<"asc" | "desc">("asc");
+  const [appPage, setAppPage] = useState(1);
+  const [appsPerPage, setAppsPerPage] = useState(10);
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -316,6 +322,121 @@ export default function StaffDashboard() {
     );
   };
 
+  const filteredApplications = useMemo(() => {
+    if (!appSearch.trim()) return applications;
+
+    const searchLower = appSearch.toLowerCase().trim();
+
+    return applications.filter((app) => {
+      const userName = app.profiles?.full_name?.toLowerCase() || "";
+      if (userName.includes(searchLower)) return true;
+
+      const email = app.profiles?.email?.toLowerCase() || "";
+      if (email.includes(searchLower)) return true;
+
+      const requestedAmount = app.requested_amount?.toString() || "";
+      if (requestedAmount.includes(searchLower)) return true;
+
+      const status = app.status?.toLowerCase() || "";
+      if (status.includes(searchLower)) return true;
+
+      const submittedDate = new Date(app.submitted_at);
+      
+      try {
+        const searchDate = parseISO(searchLower);
+        if (!isNaN(searchDate.getTime())) {
+          if (format(submittedDate, "yyyy-MM-dd") === format(searchDate, "yyyy-MM-dd")) return true;
+        }
+      } catch (e) {}
+
+      const monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const monthIndex = monthNames.findIndex(m => m.startsWith(searchLower));
+      if (monthIndex !== -1) {
+        if (submittedDate.getMonth() === monthIndex) return true;
+      }
+
+      if (searchLower.length === 4 && !isNaN(Number(searchLower))) {
+        if (submittedDate.getFullYear().toString() === searchLower) return true;
+      }
+
+      return false;
+    });
+  }, [applications, appSearch]);
+
+  const sortedApplications = useMemo(() => {
+    if (!appSortColumn) return filteredApplications;
+
+    return [...filteredApplications].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (appSortColumn) {
+        case "name":
+          aValue = a.profiles?.full_name?.toLowerCase() || "";
+          bValue = b.profiles?.full_name?.toLowerCase() || "";
+          break;
+        case "email":
+          aValue = a.profiles?.email?.toLowerCase() || "";
+          bValue = b.profiles?.email?.toLowerCase() || "";
+          break;
+        case "status":
+          aValue = a.status?.toLowerCase() || "";
+          bValue = b.status?.toLowerCase() || "";
+          break;
+        case "requested":
+          aValue = parseFloat(a.requested_amount) || 0;
+          bValue = parseFloat(b.requested_amount) || 0;
+          break;
+        case "terms":
+          aValue = a.terms_weeks || 0;
+          bValue = b.terms_weeks || 0;
+          break;
+        case "submitted":
+          aValue = new Date(a.submitted_at).getTime();
+          bValue = new Date(b.submitted_at).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return appSortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return appSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredApplications, appSortColumn, appSortDirection]);
+
+  const paginatedApplications = useMemo(() => {
+    const startIndex = (appPage - 1) * appsPerPage;
+    const endIndex = startIndex + appsPerPage;
+    return sortedApplications.slice(startIndex, endIndex);
+  }, [sortedApplications, appPage, appsPerPage]);
+
+  const totalAppPages = Math.ceil(sortedApplications.length / appsPerPage);
+
+  const handleAppSort = (column: string) => {
+    if (appSortColumn === column) {
+      setAppSortDirection(appSortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setAppSortColumn(column);
+      setAppSortDirection("asc");
+    }
+  };
+
+  const AppSortIcon = ({ column }: { column: string }) => {
+    if (appSortColumn !== column) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    }
+    return appSortDirection === "asc" ? (
+      <ArrowUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ArrowDown className="h-4 w-4 ml-1" />
+    );
+  };
+
+
   const handleReviewApplication = (app: any) => {
     setSelectedApp(app);
     setReviewData({
@@ -499,74 +620,301 @@ export default function StaffDashboard() {
                 <CardTitle>Loan Applications</CardTitle>
                 <CardDescription>Review and manage loan applications</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {applications.map((app) => (
-                    <div key={app.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold">{app.profiles?.full_name || "N/A"}</h3>
-                          <p className="text-sm text-muted-foreground">{app.profiles?.email}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Phone: {app.profiles?.phone_number || "N/A"}
-                          </p>
-                        </div>
-                        <StatusBadge status={app.status} />
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Requested</p>
-                          <p className="font-semibold">${app.requested_amount}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Terms</p>
-                          <p className="font-semibold">{app.terms_weeks} weeks</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Weekly Payment</p>
-                          <p className="font-semibold">${app.weekly_payment?.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Submitted</p>
-                          <p className="font-semibold">
-                            {format(new Date(app.submitted_at), "MMM d")}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => {
-                            setSelectedApp(app);
-                            setDetailsDialogOpen(true);
-                          }}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          View Details
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleReviewApplication(app)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Review
-                        </Button>
-                        {app.status === "approved" && (
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedApp(app);
-                              setFundDialogOpen(true);
-                            }}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Fund Loan
-                          </Button>
-                        )}
-                      </div>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-1 min-w-[300px]">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder='Search by name, email, amount, or status...'
+                      value={appSearch}
+                      onChange={(e) => {
+                        setAppSearch(e.target.value);
+                        setAppPage(1);
+                      }}
+                      className="max-w-2xl"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                      <Select 
+                        value={appsPerPage.toString()} 
+                        onValueChange={(value) => {
+                          setAppsPerPage(parseInt(value));
+                          setAppPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="w-20 h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-1 border rounded-md p-1">
+                      <Button
+                        variant={appViewMode === "list" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setAppViewMode("list")}
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={appViewMode === "table" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setAppViewMode("table")}
+                      >
+                        <Grid className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
+
+                {sortedApplications.length > 0 ? (
+                  appViewMode === "list" ? (
+                    <div className="space-y-4">
+                      {paginatedApplications.map((app) => (
+                        <div key={app.id} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <h3 className="font-semibold">{app.profiles?.full_name || "N/A"}</h3>
+                              <p className="text-sm text-muted-foreground">{app.profiles?.email}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Phone: {app.profiles?.phone_number || "N/A"}
+                              </p>
+                            </div>
+                            <StatusBadge status={app.status} />
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Requested</p>
+                              <p className="font-semibold">${app.requested_amount}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Terms</p>
+                              <p className="font-semibold">{app.terms_weeks} weeks</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Weekly Payment</p>
+                              <p className="font-semibold">${app.weekly_payment?.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Submitted</p>
+                              <p className="font-semibold">
+                                {format(new Date(app.submitted_at), "MMM d")}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => {
+                                setSelectedApp(app);
+                                setDetailsDialogOpen(true);
+                              }}
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              View Details
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleReviewApplication(app)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Review
+                            </Button>
+                            {app.status === "approved" && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedApp(app);
+                                  setFundDialogOpen(true);
+                                }}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Fund Loan
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleAppSort("name")}
+                            >
+                              <div className="flex items-center">
+                                Applicant
+                                <AppSortIcon column="name" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleAppSort("email")}
+                            >
+                              <div className="flex items-center">
+                                Email
+                                <AppSortIcon column="email" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleAppSort("status")}
+                            >
+                              <div className="flex items-center">
+                                Status
+                                <AppSortIcon column="status" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="text-right cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleAppSort("requested")}
+                            >
+                              <div className="flex items-center justify-end">
+                                Requested
+                                <AppSortIcon column="requested" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="text-right cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleAppSort("terms")}
+                            >
+                              <div className="flex items-center justify-end">
+                                Terms
+                                <AppSortIcon column="terms" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleAppSort("submitted")}
+                            >
+                              <div className="flex items-center">
+                                Submitted
+                                <AppSortIcon column="submitted" />
+                              </div>
+                            </TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedApplications.map((app) => (
+                            <TableRow key={app.id}>
+                              <TableCell className="font-medium">
+                                {app.profiles?.full_name || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {app.profiles?.email || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <StatusBadge status={app.status} />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ${app.requested_amount}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {app.terms_weeks} weeks
+                              </TableCell>
+                              <TableCell>
+                                {format(new Date(app.submitted_at), "MMM d, yyyy")}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedApp(app);
+                                      setDetailsDialogOpen(true);
+                                    }}
+                                  >
+                                    <FileText className="h-4 w-4 mr-1" />
+                                    Details
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => handleReviewApplication(app)}
+                                  >
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    Review
+                                  </Button>
+                                  {app.status === "approved" && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedApp(app);
+                                        setFundDialogOpen(true);
+                                      }}
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Fund
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    {appSearch ? "No applications found matching your search" : "No applications yet"}
+                  </p>
+                )}
+
+                {sortedApplications.length > 0 && totalAppPages > 1 && (
+                  <div className="flex items-center justify-between px-2">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {((appPage - 1) * appsPerPage) + 1} to {Math.min(appPage * appsPerPage, sortedApplications.length)} of {sortedApplications.length} applications
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAppPage(p => Math.max(1, p - 1))}
+                        disabled={appPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1 text-sm">
+                        <span className="text-muted-foreground">Page</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={totalAppPages}
+                          value={appPage}
+                          onChange={(e) => {
+                            const page = parseInt(e.target.value);
+                            if (page >= 1 && page <= totalAppPages) {
+                              setAppPage(page);
+                            }
+                          }}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-muted-foreground">of {totalAppPages}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAppPage(p => Math.min(totalAppPages, p + 1))}
+                        disabled={appPage === totalAppPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
