@@ -781,7 +781,7 @@ export default function StaffDashboard() {
                             <div>
                               <p className="text-muted-foreground">Submitted</p>
                               <p className="font-semibold">
-                                {format(new Date(app.submitted_at), "MMM d")}
+                                {format(new Date(app.submitted_at), "d MMM")}
                               </p>
                             </div>
                           </div>
@@ -899,7 +899,7 @@ export default function StaffDashboard() {
                                 {app.terms_weeks} weeks
                               </TableCell>
                               <TableCell>
-                                {format(new Date(app.submitted_at), "MMM d, yyyy")}
+                                {format(new Date(app.submitted_at), "d MMM, yyyy")}
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
@@ -1092,7 +1092,7 @@ export default function StaffDashboard() {
                             <div>
                               <p className="text-muted-foreground">Next Payment</p>
                               <p className="font-semibold">
-                                {format(new Date(loan.next_payment_date), "MMM d")}
+                                {format(new Date(loan.next_payment_date), "d MMM")}
                               </p>
                             </div>
                           </div>
@@ -1204,7 +1204,7 @@ export default function StaffDashboard() {
                                 {loan.terms_remaining}/{loan.terms_weeks}
                               </TableCell>
                               <TableCell>
-                                {format(new Date(loan.next_payment_date), "MMM d")}
+                                {format(new Date(loan.next_payment_date), "d MMM")}
                               </TableCell>
                               <TableCell>
                                 <Button 
@@ -1337,7 +1337,7 @@ export default function StaffDashboard() {
                         {paginatedPayments.map((payment) => (
                           <TableRow key={payment.id}>
                             <TableCell className="font-medium">
-                              {format(new Date(payment.payment_date), "MMM d, yyyy")}
+                              {format(new Date(payment.payment_date), "d MMM, yyyy")}
                             </TableCell>
                             <TableCell>{payment.loans?.profiles?.full_name || "N/A"}</TableCell>
                             <TableCell className="text-muted-foreground">
@@ -2010,7 +2010,7 @@ export default function StaffDashboard() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Next Payment</p>
-                      <p className="font-semibold">{format(new Date(selectedLoan.next_payment_date), "MMM d, yyyy")}</p>
+                      <p className="font-semibold">{format(new Date(selectedLoan.next_payment_date), "d MMM, yyyy")}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Interest Rate</p>
