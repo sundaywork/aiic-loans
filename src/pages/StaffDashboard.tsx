@@ -860,38 +860,40 @@ export default function StaffDashboard() {
               </Button>
             </div>
           </div>
-          <TabsList className="w-full h-12 bg-muted/30 rounded-none border-b justify-start container mx-auto px-4 gap-1">
-            <TabsTrigger 
-              value="users" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              Clients
-            </TabsTrigger>
-            <TabsTrigger 
-              value="applications"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              Applications
-            </TabsTrigger>
-            <TabsTrigger 
-              value="loans"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              Loans
-            </TabsTrigger>
-            <TabsTrigger 
-              value="payments"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              Payments
-            </TabsTrigger>
-            <TabsTrigger 
-              value="reports"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              Reports
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full bg-muted/30 border-b">
+            <TabsList className="h-12 bg-transparent rounded-none justify-start container mx-auto px-4 gap-1 w-full">
+              <TabsTrigger 
+                value="users" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+              >
+                Clients
+              </TabsTrigger>
+              <TabsTrigger 
+                value="applications"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+              >
+                Applications
+              </TabsTrigger>
+              <TabsTrigger 
+                value="loans"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+              >
+                Loans
+              </TabsTrigger>
+              <TabsTrigger 
+                value="payments"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+              >
+                Payments
+              </TabsTrigger>
+              <TabsTrigger 
+                value="reports"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+              >
+                Reports
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </header>
 
       <main className="container mx-auto px-4 py-8">
