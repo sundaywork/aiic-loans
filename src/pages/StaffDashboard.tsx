@@ -1889,6 +1889,70 @@ export default function StaffDashboard() {
                         })()}
                       </div>
 
+                      {/* Loans Funded Today */}
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">
+                          Loans Funded on {format(reportDate, "MMMM d, yyyy")}
+                        </h3>
+                        {(() => {
+                          const fundedLoans = loans.filter((loan) => {
+                            const loanStartDate = format(new Date(loan.start_date), "yyyy-MM-dd");
+                            const selectedDate = format(reportDate, "yyyy-MM-dd");
+                            return loanStartDate === selectedDate;
+                          });
+
+                          const totalFunded = fundedLoans.reduce((sum, l) => sum + parseFloat(l.principal_amount), 0);
+
+                          return fundedLoans.length > 0 ? (
+                            <>
+                              <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                  Total Outgoing: <span className="text-lg">${totalFunded.toFixed(2)}</span> ({fundedLoans.length} loan{fundedLoans.length !== 1 ? 's' : ''})
+                                </p>
+                              </div>
+                              <div className="border rounded-lg">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Borrower</TableHead>
+                                      <TableHead>Principal Amount</TableHead>
+                                      <TableHead>Interest Rate</TableHead>
+                                      <TableHead>Total Amount</TableHead>
+                                      <TableHead>Weekly Payment</TableHead>
+                                      <TableHead>Terms</TableHead>
+                                      <TableHead>Status</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {fundedLoans.map((loan) => (
+                                      <TableRow key={loan.id}>
+                                        <TableCell className="font-medium">
+                                          {loan.profiles?.full_name || "N/A"}
+                                        </TableCell>
+                                        <TableCell className="text-blue-600 font-semibold">
+                                          ${loan.principal_amount}
+                                        </TableCell>
+                                        <TableCell>{loan.interest_rate}%</TableCell>
+                                        <TableCell>${loan.total_amount}</TableCell>
+                                        <TableCell>${loan.weekly_payment}</TableCell>
+                                        <TableCell>{loan.terms_weeks} weeks</TableCell>
+                                        <TableCell>
+                                          <StatusBadge status={loan.status} />
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-center text-muted-foreground py-8 border rounded-lg">
+                              No loans funded on this date
+                            </p>
+                          );
+                        })()}
+                      </div>
+
                       {/* Defaulted Loans */}
                       <div>
                         <h3 className="text-lg font-semibold mb-3">
