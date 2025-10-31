@@ -1460,6 +1460,7 @@ export default function StaffDashboard() {
                     step="1"
                     value={reviewData.interest_rate}
                     onChange={(e) => handleReviewDataChange("interest_rate", e.target.value)}
+                    disabled={selectedApp?.status === 'funded'}
                   />
                 </div>
                 <div className="space-y-2">
