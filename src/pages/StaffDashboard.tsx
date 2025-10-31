@@ -70,6 +70,7 @@ export default function StaffDashboard() {
     amount: "",
     payment_date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
+    paid_by: "",
   });
 
   useEffect(() => {
@@ -595,6 +596,7 @@ export default function StaffDashboard() {
         payment_date: paymentData.payment_date,
         remaining_balance_after: parseFloat(newBalance),
         notes: paymentData.notes,
+        paid_by: paymentData.paid_by || null,
         recorded_by: user!.id,
       });
 
@@ -622,6 +624,7 @@ export default function StaffDashboard() {
         amount: "",
         payment_date: format(new Date(), "yyyy-MM-dd"),
         notes: "",
+        paid_by: "",
       });
       loadData();
     } catch (error: any) {
@@ -1355,6 +1358,28 @@ export default function StaffDashboard() {
                         onChange={(e) => setPaymentData({ ...paymentData, payment_date: e.target.value })}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Paid By</Label>
+                    <div className="flex gap-2 flex-wrap mb-2">
+                      {["Cash", "Card", "Cheq", "Bank Transfer"].map((method) => (
+                        <Button
+                          key={method}
+                          type="button"
+                          variant={paymentData.paid_by === method ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPaymentData({ ...paymentData, paid_by: method })}
+                        >
+                          {method}
+                        </Button>
+                      ))}
+                    </div>
+                    <Input
+                      placeholder="Or enter custom payment method"
+                      value={paymentData.paid_by}
+                      onChange={(e) => setPaymentData({ ...paymentData, paid_by: e.target.value })}
+                    />
                   </div>
 
                   <div className="space-y-2">
