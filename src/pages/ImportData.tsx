@@ -162,20 +162,19 @@ export default function ImportData() {
 
     setUploadingClients(true);
     try {
-      // Limit to first 10 rows for debugging
-      const limitedData = {
-        clients: preview.clients.slice(0, 10),
+      const importData = {
+        clients: preview.clients,
         loans: []
       };
       
       const { data, error } = await supabase.functions.invoke("import-excel-data", {
-        body: { ...limitedData, mode: 'clients' }
+        body: { ...importData, mode: 'clients' }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Client import completed (10 rows)",
+        title: "Client import completed",
         description: `${data.clients.success} imported, ${data.clients.skipped} skipped, ${data.clients.errors.length} failed`
       });
 
@@ -203,20 +202,19 @@ export default function ImportData() {
 
     setUploadingLoans(true);
     try {
-      // Limit to first 10 rows for debugging
-      const limitedData = {
+      const importData = {
         clients: [],
-        loans: preview.loans.slice(0, 10)
+        loans: preview.loans
       };
       
       const { data, error } = await supabase.functions.invoke("import-excel-data", {
-        body: { ...limitedData, mode: 'loans' }
+        body: { ...importData, mode: 'loans' }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Loan import completed (10 rows)",
+        title: "Loan import completed",
         description: `${data.loans.success} loans imported, ${data.loans.skipped} skipped, ${data.loans.errors.length} failed | ${data.payments.success} payments`
       });
 
