@@ -996,24 +996,41 @@ export default function StaffDashboard() {
                   </div>
                 )}
 
-                {totalUserPages > 1 && (
-                  <div className="flex items-center justify-between">
+                {sortedUsers.length > 0 && totalUserPages > 1 && (
+                  <div className="flex items-center justify-between px-2">
                     <p className="text-sm text-muted-foreground">
-                      Page {userPage} of {totalUserPages} ({sortedUsers.length} clients)
+                      Showing {((userPage - 1) * usersPerPage) + 1} to {Math.min(userPage * usersPerPage, sortedUsers.length)} of {sortedUsers.length} clients
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setUserPage(Math.max(1, userPage - 1))}
+                        onClick={() => setUserPage(p => Math.max(1, p - 1))}
                         disabled={userPage === 1}
                       >
                         Previous
                       </Button>
+                      <div className="flex items-center gap-1 text-sm">
+                        <span className="text-muted-foreground">Page</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={totalUserPages}
+                          value={userPage}
+                          onChange={(e) => {
+                            const page = parseInt(e.target.value);
+                            if (page >= 1 && page <= totalUserPages) {
+                              setUserPage(page);
+                            }
+                          }}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-muted-foreground">of {totalUserPages}</span>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setUserPage(Math.min(totalUserPages, userPage + 1))}
+                        onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
                         disabled={userPage === totalUserPages}
                       >
                         Next
