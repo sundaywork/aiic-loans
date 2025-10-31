@@ -1360,9 +1360,21 @@ export default function StaffDashboard() {
                     <CardTitle>Active Loans</CardTitle>
                     <CardDescription>Monitor active loans and balances</CardDescription>
                   </div>
-                  <Button onClick={() => setRecordPaymentDialogOpen(true)}>
-                    Record Payment
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" disabled>
+                      Default Rate: {(() => {
+                        const nonCancelledLoans = loans.filter(l => l.status !== 'cancelled');
+                        const defaultedLoans = loans.filter(l => l.status === 'defaulted');
+                        const rate = nonCancelledLoans.length > 0 
+                          ? ((defaultedLoans.length / nonCancelledLoans.length) * 100).toFixed(1)
+                          : '0.0';
+                        return `${rate}%`;
+                      })()}
+                    </Button>
+                    <Button onClick={() => setRecordPaymentDialogOpen(true)}>
+                      Record Payment
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
