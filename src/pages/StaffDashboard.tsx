@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { format, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload, List, Grid, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload, List, Grid, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown, Check } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 
@@ -37,6 +40,7 @@ export default function StaffDashboard() {
   const [loanSortDirection, setLoanSortDirection] = useState<"asc" | "desc">("asc");
   const [loanPage, setLoanPage] = useState(1);
   const [loansPerPage, setLoansPerPage] = useState(10);
+  const [loanComboboxOpen, setLoanComboboxOpen] = useState(false);
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -851,18 +855,56 @@ export default function StaffDashboard() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Select Loan</Label>
-                    <Select value={paymentData.loan_id} onValueChange={(value) => setPaymentData({ ...paymentData, loan_id: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a loan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {loans.filter((l) => l.status === "active").map((loan) => (
-                          <SelectItem key={loan.id} value={loan.id}>
-                            {loan.profiles?.full_name} - ${loan.remaining_balance} balance
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={loanComboboxOpen} onOpenChange={setLoanComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={loanComboboxOpen}
+                          className="w-full justify-between"
+                        >
+                          {paymentData.loan_id
+                            ? (() => {
+                                const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
+                                return selectedLoan
+                                  ? `${selectedLoan.profiles?.full_name} - $${selectedLoan.remaining_balance} balance`
+                                  : "Choose a loan";
+                              })()
+                            : "Choose a loan"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search by name or balance..." />
+                          <CommandList>
+                            <CommandEmpty>No active loans found.</CommandEmpty>
+                            <CommandGroup>
+                              {loans
+                                .filter((l) => l.status === "active")
+                                .map((loan) => (
+                                  <CommandItem
+                                    key={loan.id}
+                                    value={`${loan.profiles?.full_name} ${loan.remaining_balance}`}
+                                    onSelect={() => {
+                                      setPaymentData({ ...paymentData, loan_id: loan.id });
+                                      setLoanComboboxOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        paymentData.loan_id === loan.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {loan.profiles?.full_name} - ${loan.remaining_balance} balance
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
