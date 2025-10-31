@@ -32,6 +32,8 @@ export default function StaffDashboard() {
   const [fundDialogOpen, setFundDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [loanDetailsDialogOpen, setLoanDetailsDialogOpen] = useState(false);
+  const [loanStatusDialogOpen, setLoanStatusDialogOpen] = useState(false);
+  const [newLoanStatus, setNewLoanStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
   const [loanViewMode, setLoanViewMode] = useState<"list" | "table">("table");
@@ -578,6 +580,31 @@ export default function StaffDashboard() {
         notes: "",
       });
       loadData();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangeLoanStatus = async () => {
+    if (!selectedLoan || !newLoanStatus) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("loans")
+        .update({ status: newLoanStatus })
+        .eq("id", selectedLoan.id);
+
+      if (error) throw error;
+
+      toast.success("Loan status updated successfully");
+      setLoanStatusDialogOpen(false);
+      loadData();
+      
+      // Update the selectedLoan to reflect the new status
+      setSelectedLoan({ ...selectedLoan, status: newLoanStatus });
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -1701,7 +1728,19 @@ export default function StaffDashboard() {
                     <p className="font-medium">{selectedLoan.profiles?.email || "N/A"}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Status</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-muted-foreground">Status</Label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setNewLoanStatus(selectedLoan.status);
+                          setLoanStatusDialogOpen(true);
+                        }}
+                      >
+                        Change Status
+                      </Button>
+                    </div>
                     <div className="mt-1">
                       <StatusBadge status={selectedLoan.status} />
                     </div>
@@ -1798,6 +1837,81 @@ export default function StaffDashboard() {
               <div className="flex justify-end">
                 <Button variant="outline" onClick={() => setLoanDetailsDialogOpen(false)}>
                   Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Loan Status Dialog */}
+      <Dialog open={loanStatusDialogOpen} onOpenChange={setLoanStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Loan Status</DialogTitle>
+            <DialogDescription>
+              Update the status of this loan
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedLoan && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-muted-foreground">Current Status</Label>
+                <div className="mt-1">
+                  <StatusBadge status={selectedLoan.status} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>New Status</Label>
+                <Select value={newLoanStatus} onValueChange={setNewLoanStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select new status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        Active
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="cancelled">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-500" />
+                        Cancelled
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="default">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        Default
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="closed">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-500" />
+                        Closed
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setLoanStatusDialogOpen(false)} 
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleChangeLoanStatus} 
+                  disabled={loading || !newLoanStatus || newLoanStatus === selectedLoan.status}
+                  className="flex-1"
+                >
+                  {loading ? "Updating..." : "Update Status"}
                 </Button>
               </div>
             </div>
