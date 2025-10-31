@@ -179,6 +179,7 @@ export type Database = {
           id: string
           loan_id: string
           notes: string | null
+          paid_by: string | null
           payment_date: string
           recorded_by: string | null
           remaining_balance_after: number
@@ -190,6 +191,7 @@ export type Database = {
           id?: string
           loan_id: string
           notes?: string | null
+          paid_by?: string | null
           payment_date?: string
           recorded_by?: string | null
           remaining_balance_after: number
@@ -201,6 +203,7 @@ export type Database = {
           id?: string
           loan_id?: string
           notes?: string | null
+          paid_by?: string | null
           payment_date?: string
           recorded_by?: string | null
           remaining_balance_after?: number
