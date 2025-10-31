@@ -83,6 +83,7 @@ export default function StaffDashboard() {
 
   const [newClientData, setNewClientData] = useState({
     email: "",
+    password: "",
     full_name: "",
     phone_number: "",
     address: "",
@@ -647,12 +648,30 @@ export default function StaffDashboard() {
       return;
     }
 
+    if (!newClientData.password.trim()) {
+      toast.error("Password is required");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase
+      // First, create the auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newClientData.email,
+        password: newClientData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Failed to create user");
+
+      // Then insert the profile with the created user ID
+      const { error: profileError } = await supabase
         .from("profiles")
         .insert({
-          id: crypto.randomUUID(),
+          id: authData.user.id,
           email: newClientData.email,
           full_name: newClientData.full_name || null,
           phone_number: newClientData.phone_number || null,
@@ -661,12 +680,13 @@ export default function StaffDashboard() {
           client_no: newClientData.client_no || null,
         });
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
       toast.success("Client added successfully");
       setAddClientDialogOpen(false);
       setNewClientData({
         email: "",
+        password: "",
         full_name: "",
         phone_number: "",
         address: "",
@@ -2476,6 +2496,26 @@ export default function StaffDashboard() {
                 />
               </div>
               <div className="space-y-2">
+                <Label>Password <span className="text-destructive">*</span></Label>
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={newClientData.password}
+                  onChange={(e) => setNewClientData({ ...newClientData, password: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <Input
+                  placeholder="Full name"
+                  value={newClientData.full_name}
+                  onChange={(e) => setNewClientData({ ...newClientData, full_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Client Number</Label>
                 <Input
                   placeholder="Client number"
@@ -2485,22 +2525,30 @@ export default function StaffDashboard() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input
-                placeholder="Full name"
-                value={newClientData.full_name}
-                onChange={(e) => setNewClientData({ ...newClientData, full_name: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Phone Number</Label>
-              <Input
-                placeholder="Phone number"
-                value={newClientData.phone_number}
-                onChange={(e) => setNewClientData({ ...newClientData, phone_number: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <Input
+                  placeholder="Phone number"
+                  value={newClientData.phone_number}
+                  onChange={(e) => setNewClientData({ ...newClientData, phone_number: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Occupation</Label>
+                <Select
+                  value={newClientData.occupation}
+                  onValueChange={(value) => setNewClientData({ ...newClientData, occupation: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select occupation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Taxi Driver">Taxi Driver</SelectItem>
+                    <SelectItem value="Government">Government</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -2509,15 +2557,6 @@ export default function StaffDashboard() {
                 placeholder="Address"
                 value={newClientData.address}
                 onChange={(e) => setNewClientData({ ...newClientData, address: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Occupation</Label>
-              <Input
-                placeholder="Occupation"
-                value={newClientData.occupation}
-                onChange={(e) => setNewClientData({ ...newClientData, occupation: e.target.value })}
               />
             </div>
 
@@ -2531,7 +2570,7 @@ export default function StaffDashboard() {
               </Button>
               <Button 
                 onClick={handleAddClient}
-                disabled={loading || !newClientData.email.trim()}
+                disabled={loading || !newClientData.email.trim() || !newClientData.password.trim()}
                 className="flex-1"
               >
                 {loading ? "Adding..." : "Add Client"}
