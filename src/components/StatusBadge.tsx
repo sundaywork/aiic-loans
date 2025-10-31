@@ -13,7 +13,6 @@ const statusConfig = {
   pending: { label: "Pending", variant: "warning" },
   funded: { label: "Funded", variant: "success" },
   active: { label: "Active", variant: "success" },
-  cancelled: { label: "Cancelled", variant: "secondary" },
   completed: { label: "Completed", variant: "secondary" },
   defaulted: { label: "Defaulted", variant: "destructive" },
 };
