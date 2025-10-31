@@ -45,21 +45,6 @@ interface ImportData {
   mode?: 'clients' | 'loans' | 'all'
 }
 
-// Helper function to process in batches with concurrency limit
-async function processInBatches<T, R>(
-  items: T[],
-  batchSize: number,
-  processor: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = []
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize)
-    const batchResults = await Promise.all(batch.map(processor))
-    results.push(...batchResults)
-  }
-  return results
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -237,126 +222,126 @@ Deno.serve(async (req) => {
           console.log('No new loans to import')
         } else {
           // Prepare batch data for loan applications
-        const loanAppsToInsert = loansToImport.map(loanData => {
-          const userId = clientMap.get(loanData.client_no)!
-          return {
-            user_id: userId,
-            requested_amount: loanData.amount,
-            approved_amount: loanData.amount,
-            terms_weeks: loanData.terms_weeks,
-            status: 'approved'
-          }
-        })
-
-        // Batch insert loan applications
-        console.log('Batch inserting loan applications...')
-        const { data: insertedLoanApps, error: appBatchError } = await supabaseAdmin
-          .from('loan_applications')
-          .insert(loanAppsToInsert)
-          .select('id')
-
-        if (appBatchError) {
-          throw new Error(`Failed to batch insert loan applications: ${appBatchError.message}`)
-        }
-
-        console.log(`✓ Inserted ${insertedLoanApps.length} loan applications`)
-
-        // Prepare batch data for loans
-        const loansToInsert = loansToImport.map((loanData, idx) => {
-          const userId = clientMap.get(loanData.client_no)!
-          const loanAppId = insertedLoanApps[idx].id
-          const totalPaid = loanData.payments.reduce((sum, p) => sum + p.amount, 0)
-          const remainingBalance = loanData.total_amount - totalPaid
-          const weeksPassed = loanData.payments.length
-          const termsRemaining = Math.max(0, loanData.terms_weeks - weeksPassed)
-
-          return {
-            loan_no: loanData.loan_no,
-            application_id: loanAppId,
-            user_id: userId,
-            principal_amount: loanData.amount,
-            interests: loanData.interests,
-            interest_rate: loanData.interests > 0 ? (loanData.interests / loanData.amount * 100) : 0,
-            total_amount: loanData.total_amount,
-            terms_weeks: loanData.terms_weeks,
-            terms_remaining: termsRemaining,
-            weekly_payment: loanData.weekly_repay_min,
-            signed_date: loanData.signed_date,
-            paid_by: loanData.paid_by,
-            start_date: loanData.start_date,
-            next_payment_date: loanData.first_repayment_date,
-            end_date: loanData.end_date,
-            status: loanData.status.toLowerCase().includes('finish') ? 'completed' : 'active',
-            remaining_balance: remainingBalance
-          }
-        })
-
-        // Batch insert loans
-        console.log('Batch inserting loans...')
-        const { data: insertedLoans, error: loanBatchError } = await supabaseAdmin
-          .from('loans')
-          .insert(loansToInsert)
-          .select('id, loan_no')
-
-        if (loanBatchError) {
-          throw new Error(`Failed to batch insert loans: ${loanBatchError.message}`)
-        }
-
-        console.log(`✓ Inserted ${insertedLoans.length} loans`)
-        results.loans.success = insertedLoans.length
-
-        // Create loan_no to loan_id mapping for payments
-        const loanIdMap = new Map<string, string>()
-        insertedLoans.forEach(loan => {
-          loanIdMap.set(loan.loan_no, loan.id)
-        })
-
-        // Prepare batch data for all payments
-        const allPaymentsToInsert: Array<{
-          loan_id: string
-          user_id: string
-          amount: number
-          payment_date: string
-          remaining_balance_after: number
-        }> = []
-
-        loansToImport.forEach((loanData, loanIdx) => {
-          const loanId = loanIdMap.get(loanData.loan_no)!
-          const userId = clientMap.get(loanData.client_no)!
-          let runningBalance = loanData.total_amount
-
-          loanData.payments.forEach(payment => {
-            runningBalance -= payment.amount
-            allPaymentsToInsert.push({
-              loan_id: loanId,
+          const loanAppsToInsert = loansToImport.map(loanData => {
+            const userId = clientMap.get(loanData.client_no)!
+            return {
               user_id: userId,
-              amount: payment.amount,
-              payment_date: payment.date,
-              remaining_balance_after: runningBalance
+              requested_amount: loanData.amount,
+              approved_amount: loanData.amount,
+              terms_weeks: loanData.terms_weeks,
+              status: 'approved'
+            }
+          })
+
+          // Batch insert loan applications
+          console.log('Batch inserting loan applications...')
+          const { data: insertedLoanApps, error: appBatchError } = await supabaseAdmin
+            .from('loan_applications')
+            .insert(loanAppsToInsert)
+            .select('id')
+
+          if (appBatchError) {
+            throw new Error(`Failed to batch insert loan applications: ${appBatchError.message}`)
+          }
+
+          console.log(`✓ Inserted ${insertedLoanApps.length} loan applications`)
+
+          // Prepare batch data for loans
+          const loansToInsert = loansToImport.map((loanData, idx) => {
+            const userId = clientMap.get(loanData.client_no)!
+            const loanAppId = insertedLoanApps[idx].id
+            const totalPaid = loanData.payments.reduce((sum, p) => sum + p.amount, 0)
+            const remainingBalance = loanData.total_amount - totalPaid
+            const weeksPassed = loanData.payments.length
+            const termsRemaining = Math.max(0, loanData.terms_weeks - weeksPassed)
+
+            return {
+              loan_no: loanData.loan_no,
+              application_id: loanAppId,
+              user_id: userId,
+              principal_amount: loanData.amount,
+              interests: loanData.interests,
+              interest_rate: loanData.interests > 0 ? (loanData.interests / loanData.amount * 100) : 0,
+              total_amount: loanData.total_amount,
+              terms_weeks: loanData.terms_weeks,
+              terms_remaining: termsRemaining,
+              weekly_payment: loanData.weekly_repay_min,
+              signed_date: loanData.signed_date,
+              paid_by: loanData.paid_by,
+              start_date: loanData.start_date,
+              next_payment_date: loanData.first_repayment_date,
+              end_date: loanData.end_date,
+              status: loanData.status.toLowerCase().includes('finish') ? 'completed' : 'active',
+              remaining_balance: remainingBalance
+            }
+          })
+
+          // Batch insert loans
+          console.log('Batch inserting loans...')
+          const { data: insertedLoans, error: loanBatchError } = await supabaseAdmin
+            .from('loans')
+            .insert(loansToInsert)
+            .select('id, loan_no')
+
+          if (loanBatchError) {
+            throw new Error(`Failed to batch insert loans: ${loanBatchError.message}`)
+          }
+
+          console.log(`✓ Inserted ${insertedLoans.length} loans`)
+          results.loans.success = insertedLoans.length
+
+          // Create loan_no to loan_id mapping for payments
+          const loanIdMap = new Map<string, string>()
+          insertedLoans.forEach(loan => {
+            loanIdMap.set(loan.loan_no, loan.id)
+          })
+
+          // Prepare batch data for all payments
+          const allPaymentsToInsert: Array<{
+            loan_id: string
+            user_id: string
+            amount: number
+            payment_date: string
+            remaining_balance_after: number
+          }> = []
+
+          loansToImport.forEach((loanData, loanIdx) => {
+            const loanId = loanIdMap.get(loanData.loan_no)!
+            const userId = clientMap.get(loanData.client_no)!
+            let runningBalance = loanData.total_amount
+
+            loanData.payments.forEach(payment => {
+              runningBalance -= payment.amount
+              allPaymentsToInsert.push({
+                loan_id: loanId,
+                user_id: userId,
+                amount: payment.amount,
+                payment_date: payment.date,
+                remaining_balance_after: runningBalance
+              })
             })
           })
-        })
 
-        // Batch insert payments (in chunks if too large)
-        if (allPaymentsToInsert.length > 0) {
-          console.log(`Batch inserting ${allPaymentsToInsert.length} payments...`)
-          const PAYMENT_BATCH_SIZE = 1000
-          
-          for (let i = 0; i < allPaymentsToInsert.length; i += PAYMENT_BATCH_SIZE) {
-            const paymentBatch = allPaymentsToInsert.slice(i, i + PAYMENT_BATCH_SIZE)
-            const { error: paymentBatchError } = await supabaseAdmin
-              .from('payments')
-              .insert(paymentBatch)
+          // Batch insert payments (in chunks if too large)
+          if (allPaymentsToInsert.length > 0) {
+            console.log(`Batch inserting ${allPaymentsToInsert.length} payments...`)
+            const PAYMENT_BATCH_SIZE = 1000
+            
+            for (let i = 0; i < allPaymentsToInsert.length; i += PAYMENT_BATCH_SIZE) {
+              const paymentBatch = allPaymentsToInsert.slice(i, i + PAYMENT_BATCH_SIZE)
+              const { error: paymentBatchError } = await supabaseAdmin
+                .from('payments')
+                .insert(paymentBatch)
 
-            if (paymentBatchError) {
-              console.error(`Error inserting payment batch ${Math.floor(i / PAYMENT_BATCH_SIZE) + 1}:`, paymentBatchError)
-              results.payments.errors.push(`Payment batch ${Math.floor(i / PAYMENT_BATCH_SIZE) + 1}: ${paymentBatchError.message}`)
-            } else {
-              results.payments.success += paymentBatch.length
-              console.log(`✓ Inserted payment batch ${Math.floor(i / PAYMENT_BATCH_SIZE) + 1} (${paymentBatch.length} payments)`)
+              if (paymentBatchError) {
+                console.error(`Error inserting payment batch ${Math.floor(i / PAYMENT_BATCH_SIZE) + 1}:`, paymentBatchError)
+                results.payments.errors.push(`Payment batch ${Math.floor(i / PAYMENT_BATCH_SIZE) + 1}: ${paymentBatchError.message}`)
+              } else {
+                results.payments.success += paymentBatch.length
+                console.log(`✓ Inserted payment batch ${Math.floor(i / PAYMENT_BATCH_SIZE) + 1} (${paymentBatch.length} payments)`)
+              }
             }
           }
-        }
         }
       }
     }
