@@ -1728,7 +1728,7 @@ export default function StaffDashboard() {
                     <p className="font-medium">{selectedLoan.profiles?.email || "N/A"}</p>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <Label className="text-muted-foreground">Status</Label>
                       <Button
                         size="sm"
