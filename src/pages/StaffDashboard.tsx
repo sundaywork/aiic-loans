@@ -35,6 +35,8 @@ export default function StaffDashboard() {
   const [loanSearch, setLoanSearch] = useState("");
   const [loanSortColumn, setLoanSortColumn] = useState<string | null>(null);
   const [loanSortDirection, setLoanSortDirection] = useState<"asc" | "desc">("asc");
+  const [loanPage, setLoanPage] = useState(1);
+  const [loansPerPage] = useState(10);
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -290,6 +292,14 @@ export default function StaffDashboard() {
       setLoanSortDirection("asc");
     }
   };
+
+  const paginatedLoans = useMemo(() => {
+    const startIndex = (loanPage - 1) * loansPerPage;
+    const endIndex = startIndex + loansPerPage;
+    return sortedLoans.slice(startIndex, endIndex);
+  }, [sortedLoans, loanPage, loansPerPage]);
+
+  const totalLoanPages = Math.ceil(sortedLoans.length / loansPerPage);
 
   const SortIcon = ({ column }: { column: string }) => {
     if (loanSortColumn !== column) {
@@ -570,7 +580,10 @@ export default function StaffDashboard() {
                     <Input
                       placeholder='Search by user name, amount, or date (e.g., "2025-01-15", "January")'
                       value={loanSearch}
-                      onChange={(e) => setLoanSearch(e.target.value)}
+                      onChange={(e) => {
+                        setLoanSearch(e.target.value);
+                        setLoanPage(1); // Reset to first page on search
+                      }}
                       className="max-w-2xl"
                     />
                   </div>
@@ -714,7 +727,7 @@ export default function StaffDashboard() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {sortedLoans.map((loan) => (
+                          {paginatedLoans.map((loan) => (
                             <TableRow key={loan.id}>
                               <TableCell className="font-medium">
                                 {loan.profiles?.full_name || "N/A"}
@@ -760,6 +773,45 @@ export default function StaffDashboard() {
                   <p className="text-center text-muted-foreground py-8">
                     {loanSearch ? "No loans found matching your search" : "No loans yet"}
                   </p>
+                )}
+
+                {loanViewMode === "table" && sortedLoans.length > 0 && totalLoanPages > 1 && (
+                  <div className="flex items-center justify-between px-2">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {((loanPage - 1) * loansPerPage) + 1} to {Math.min(loanPage * loansPerPage, sortedLoans.length)} of {sortedLoans.length} loans
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLoanPage(p => Math.max(1, p - 1))}
+                        disabled={loanPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalLoanPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={loanPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setLoanPage(page)}
+                            className="w-9"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLoanPage(p => Math.min(totalLoanPages, p + 1))}
+                        disabled={loanPage === totalLoanPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
