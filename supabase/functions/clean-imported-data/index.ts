@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
       payments: 0,
       loans: 0,
       profiles: 0,
+      users: 0,
       errors: [] as string[]
     }
 
@@ -68,6 +69,34 @@ Deno.serve(async (req) => {
       results.errors.push(`Loans: ${message}`)
     }
 
+    // Delete users with placeholder emails
+    console.log('Deleting users with placeholder emails...')
+    try {
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+      
+      if (listError) throw listError
+      
+      const placeholderUsers = users.filter(user => user.email?.endsWith('placeholder.com'))
+      console.log(`Found ${placeholderUsers.length} placeholder users`)
+      
+      for (const user of placeholderUsers) {
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+        if (deleteError) {
+          console.error(`✗ Failed to delete user ${user.email}:`, deleteError.message)
+          results.errors.push(`User ${user.email}: ${deleteError.message}`)
+        } else {
+          results.users++
+          console.log(`✓ Deleted user ${user.email}`)
+        }
+      }
+      
+      console.log(`✓ Deleted ${results.users} placeholder users`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      console.error('✗ Failed to delete placeholder users:', message)
+      results.errors.push(`Users: ${message}`)
+    }
+
     // Delete profiles with client_no not empty
     console.log('Deleting profiles with client_no...')
     try {
@@ -87,7 +116,7 @@ Deno.serve(async (req) => {
       results.errors.push(`Profiles: ${message}`)
     }
     
-    console.log(`Clean complete! Deleted - Payments: ${results.payments}, Loans: ${results.loans}, Profiles: ${results.profiles}`)
+    console.log(`Clean complete! Deleted - Users: ${results.users}, Payments: ${results.payments}, Loans: ${results.loans}, Profiles: ${results.profiles}`)
     console.log(`Errors: ${results.errors.length}`)
 
     return new Response(
