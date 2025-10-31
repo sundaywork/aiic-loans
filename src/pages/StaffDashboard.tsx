@@ -36,7 +36,7 @@ export default function StaffDashboard() {
   const [loanSortColumn, setLoanSortColumn] = useState<string | null>(null);
   const [loanSortDirection, setLoanSortDirection] = useState<"asc" | "desc">("asc");
   const [loanPage, setLoanPage] = useState(1);
-  const [loansPerPage] = useState(10);
+  const [loansPerPage, setLoansPerPage] = useState(10);
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -775,7 +775,7 @@ export default function StaffDashboard() {
                   </p>
                 )}
 
-                {loanViewMode === "table" && sortedLoans.length > 0 && totalLoanPages > 1 && (
+                {sortedLoans.length > 0 && totalLoanPages > 1 && (
                   <div className="flex items-center justify-between px-2">
                     <p className="text-sm text-muted-foreground">
                       Showing {((loanPage - 1) * loansPerPage) + 1} to {Math.min(loanPage * loansPerPage, sortedLoans.length)} of {sortedLoans.length} loans
