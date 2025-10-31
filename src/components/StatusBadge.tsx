@@ -14,8 +14,6 @@ const statusConfig = {
   funded: { label: "Funded", variant: "success" },
   active: { label: "Active", variant: "success" },
   cancelled: { label: "Cancelled", variant: "secondary" },
-  default: { label: "Default", variant: "destructive" },
-  closed: { label: "Closed", variant: "secondary" },
   completed: { label: "Completed", variant: "secondary" },
   defaulted: { label: "Defaulted", variant: "destructive" },
 };
