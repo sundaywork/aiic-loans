@@ -55,6 +55,8 @@ export default function StaffDashboard() {
   const [reviewData, setReviewData] = useState({
     status: "",
     approved_amount: "",
+    interest_rate: "",
+    weekly_payment: "",
     rejection_reason: "",
     pending_notes: "",
   });
@@ -451,13 +453,43 @@ export default function StaffDashboard() {
 
   const handleReviewApplication = (app: any) => {
     setSelectedApp(app);
+    const amount = app.approved_amount || app.requested_amount;
+    const rate = app.interest_rate || 40;
+    const weeklyPayment = calculateWeeklyPayment(amount, rate, app.terms_weeks);
     setReviewData({
       status: app.status,
-      approved_amount: app.approved_amount || app.requested_amount,
+      approved_amount: amount,
+      interest_rate: rate,
+      weekly_payment: weeklyPayment,
       rejection_reason: app.rejection_reason || "",
       pending_notes: app.pending_notes || "",
     });
     setDialogOpen(true);
+  };
+
+  const calculateWeeklyPayment = (amount: number, rate: number, terms: number) => {
+    if (!amount || !rate || !terms) return "0";
+    const principal = parseFloat(amount.toString());
+    const interestRate = parseFloat(rate.toString()) / 100;
+    const totalAmount = principal * (1 + interestRate);
+    return (totalAmount / terms).toFixed(2);
+  };
+
+  const handleReviewDataChange = (field: string, value: string) => {
+    const updatedData = { ...reviewData, [field]: value };
+    
+    // Recalculate weekly payment if amount, rate, or terms change
+    if (field === "approved_amount" || field === "interest_rate") {
+      const amount = field === "approved_amount" ? value : updatedData.approved_amount;
+      const rate = field === "interest_rate" ? value : updatedData.interest_rate;
+      updatedData.weekly_payment = calculateWeeklyPayment(
+        parseFloat(amount) || 0,
+        parseFloat(rate) || 0,
+        selectedApp?.terms_weeks || 1
+      );
+    }
+    
+    setReviewData(updatedData);
   };
 
   const handleSubmitReview = async () => {
@@ -468,8 +500,10 @@ export default function StaffDashboard() {
         .update({
           status: reviewData.status,
           approved_amount: reviewData.status === "approved" ? parseFloat(reviewData.approved_amount) : null,
-          rejection_reason: reviewData.status === "rejected" ? reviewData.rejection_reason : null,
-          pending_notes: reviewData.status === "pending" ? reviewData.pending_notes : null,
+          interest_rate: parseFloat(reviewData.interest_rate),
+          weekly_payment: parseFloat(reviewData.weekly_payment),
+          rejection_reason: reviewData.rejection_reason || null,
+          pending_notes: reviewData.pending_notes || null,
           reviewed_at: new Date().toISOString(),
           reviewed_by: user!.id,
         })
@@ -1505,36 +1539,58 @@ export default function StaffDashboard() {
               </div>
 
               {reviewData.status === "approved" && (
-                <div className="space-y-2">
-                  <Label>Approved Amount ($)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={reviewData.approved_amount}
-                    onChange={(e) => setReviewData({ ...reviewData, approved_amount: e.target.value })}
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label>Approved Amount ($)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={reviewData.approved_amount}
+                      onChange={(e) => handleReviewDataChange("approved_amount", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Interest Rate (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={reviewData.interest_rate}
+                      onChange={(e) => handleReviewDataChange("interest_rate", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Weekly Payment (Calculated)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={reviewData.weekly_payment}
+                      disabled
+                      className="bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Auto-calculated based on amount, rate, and {selectedApp.terms_weeks} weeks
+                    </p>
+                  </div>
+                </>
               )}
 
-              {reviewData.status === "rejected" && (
-                <div className="space-y-2">
-                  <Label>Rejection Reason</Label>
-                  <Textarea
-                    value={reviewData.rejection_reason}
-                    onChange={(e) => setReviewData({ ...reviewData, rejection_reason: e.target.value })}
-                  />
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Rejection Reason (Optional)</Label>
+                <Textarea
+                  value={reviewData.rejection_reason}
+                  onChange={(e) => setReviewData({ ...reviewData, rejection_reason: e.target.value })}
+                  placeholder="Enter rejection reason if applicable..."
+                />
+              </div>
 
-              {reviewData.status === "pending" && (
-                <div className="space-y-2">
-                  <Label>Notes (What's needed?)</Label>
-                  <Textarea
-                    value={reviewData.pending_notes}
-                    onChange={(e) => setReviewData({ ...reviewData, pending_notes: e.target.value })}
-                  />
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Pending Notes (Optional)</Label>
+                <Textarea
+                  value={reviewData.pending_notes}
+                  onChange={(e) => setReviewData({ ...reviewData, pending_notes: e.target.value })}
+                  placeholder="Enter pending notes if applicable..."
+                />
+              </div>
 
               <div className="flex gap-2 pt-4">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">
