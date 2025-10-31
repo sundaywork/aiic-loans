@@ -497,7 +497,7 @@ export default function StaffDashboard() {
   const handleSubmitReview = async () => {
     // Validate that notes are provided if interest rate is not 40
     if (reviewData.interest_rate && parseFloat(reviewData.interest_rate) !== 40 && !reviewData.pending_notes?.trim()) {
-      toast.error("Note is required when interest rate is not 40%");
+      toast.error("Note is required when interest rate is not default");
       return;
     }
 
@@ -1457,7 +1457,7 @@ export default function StaffDashboard() {
                   <Label>Interest Rate (%)</Label>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="1"
                     value={reviewData.interest_rate}
                     onChange={(e) => handleReviewDataChange("interest_rate", e.target.value)}
                   />
@@ -1520,7 +1520,7 @@ export default function StaffDashboard() {
                   placeholder="Enter notes..."
                 />
                 {reviewData.interest_rate && parseFloat(reviewData.interest_rate) !== 40 && !reviewData.pending_notes && (
-                  <p className="text-sm text-destructive">Note is required when interest rate is not 40%</p>
+                  <p className="text-sm text-destructive">Note is required when interest rate is not default</p>
                 )}
               </div>
 
