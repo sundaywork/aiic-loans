@@ -12,11 +12,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { format, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload, List, Grid, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown, Check } from "lucide-react";
+import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload, List, Grid, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUpDown, Check, CalendarIcon } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 
@@ -59,6 +60,7 @@ export default function StaffDashboard() {
   const [userSortDirection, setUserSortDirection] = useState<"asc" | "desc">("asc");
   const [userPage, setUserPage] = useState(1);
   const [usersPerPage, setUsersPerPage] = useState(10);
+  const [reportDate, setReportDate] = useState<Date>(new Date());
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -861,11 +863,12 @@ export default function StaffDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-3xl">
             <TabsTrigger value="users">Clients</TabsTrigger>
             <TabsTrigger value="applications">Applications</TabsTrigger>
             <TabsTrigger value="loans">Loans</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
@@ -1777,6 +1780,190 @@ export default function StaffDashboard() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Reports</CardTitle>
+                <CardDescription>View various financial and operational reports</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="daily" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="daily">Daily Summary</TabsTrigger>
+                    <TabsTrigger value="weekly">Weekly Report</TabsTrigger>
+                    <TabsTrigger value="monthly">Monthly Report</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="daily" className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <Label>Select Date:</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-[240px] justify-start text-left font-normal",
+                              !reportDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {reportDate ? format(reportDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={reportDate}
+                            onSelect={(date) => date && setReportDate(date)}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* Payments Recorded Today */}
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">
+                          Payments Recorded on {format(reportDate, "MMMM d, yyyy")}
+                        </h3>
+                        {(() => {
+                          const dailyPayments = payments.filter((p) => {
+                            const paymentDate = format(new Date(p.payment_date), "yyyy-MM-dd");
+                            const selectedDate = format(reportDate, "yyyy-MM-dd");
+                            return paymentDate === selectedDate;
+                          });
+
+                          const totalAmount = dailyPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+                          return dailyPayments.length > 0 ? (
+                            <>
+                              <div className="mb-3 p-3 bg-muted/50 rounded-lg">
+                                <p className="text-sm font-medium">
+                                  Total: <span className="text-lg text-primary">${totalAmount.toFixed(2)}</span> ({dailyPayments.length} payment{dailyPayments.length !== 1 ? 's' : ''})
+                                </p>
+                              </div>
+                              <div className="border rounded-lg">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Borrower</TableHead>
+                                      <TableHead>Amount</TableHead>
+                                      <TableHead>Paid By</TableHead>
+                                      <TableHead>Balance After</TableHead>
+                                      <TableHead>Notes</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {dailyPayments.map((payment) => (
+                                      <TableRow key={payment.id}>
+                                        <TableCell className="font-medium">
+                                          {payment.loans?.profiles?.full_name || "N/A"}
+                                        </TableCell>
+                                        <TableCell className="text-green-600 font-semibold">
+                                          ${payment.amount}
+                                        </TableCell>
+                                        <TableCell>{payment.paid_by || "-"}</TableCell>
+                                        <TableCell>
+                                          ${payment.remaining_balance_after}
+                                        </TableCell>
+                                        <TableCell className="max-w-xs truncate text-muted-foreground">
+                                          {payment.notes || "-"}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-center text-muted-foreground py-8 border rounded-lg">
+                              No payments recorded on this date
+                            </p>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Defaulted Loans */}
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">
+                          Defaulted Loans
+                        </h3>
+                        {(() => {
+                          const defaultedLoans = loans.filter((loan) => loan.status === 'defaulted');
+                          const totalDefaulted = defaultedLoans.reduce((sum, l) => sum + parseFloat(l.remaining_balance), 0);
+
+                          return defaultedLoans.length > 0 ? (
+                            <>
+                              <div className="mb-3 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                                <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                                  Total Outstanding: <span className="text-lg">${totalDefaulted.toFixed(2)}</span> ({defaultedLoans.length} loan{defaultedLoans.length !== 1 ? 's' : ''})
+                                </p>
+                              </div>
+                              <div className="border rounded-lg">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Borrower</TableHead>
+                                      <TableHead>Principal</TableHead>
+                                      <TableHead>Remaining Balance</TableHead>
+                                      <TableHead>Start Date</TableHead>
+                                      <TableHead>Next Payment</TableHead>
+                                      <TableHead>Terms Remaining</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {defaultedLoans.map((loan) => (
+                                      <TableRow key={loan.id}>
+                                        <TableCell className="font-medium">
+                                          {loan.profiles?.full_name || "N/A"}
+                                        </TableCell>
+                                        <TableCell>${loan.principal_amount}</TableCell>
+                                        <TableCell className="text-red-600 font-semibold">
+                                          ${loan.remaining_balance}
+                                        </TableCell>
+                                        <TableCell>
+                                          {format(new Date(loan.start_date), "d MMM, yyyy")}
+                                        </TableCell>
+                                        <TableCell>
+                                          {format(new Date(loan.next_payment_date), "d MMM, yyyy")}
+                                        </TableCell>
+                                        <TableCell>
+                                          {loan.terms_remaining}/{loan.terms_weeks}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-center text-muted-foreground py-8 border rounded-lg">
+                              No defaulted loans
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="weekly" className="space-y-4">
+                    <p className="text-center text-muted-foreground py-12">
+                      Weekly Report - Coming Soon
+                    </p>
+                  </TabsContent>
+
+                  <TabsContent value="monthly" className="space-y-4">
+                    <p className="text-center text-muted-foreground py-12">
+                      Monthly Report - Coming Soon
+                    </p>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>
