@@ -27,6 +27,7 @@ export default function StaffDashboard() {
   const [loans, setLoans] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -78,6 +79,15 @@ export default function StaffDashboard() {
     payment_date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
     paid_by: "",
+  });
+
+  const [newClientData, setNewClientData] = useState({
+    email: "",
+    full_name: "",
+    phone_number: "",
+    address: "",
+    occupation: "",
+    client_no: "",
   });
 
   useEffect(() => {
@@ -631,6 +641,46 @@ export default function StaffDashboard() {
     }
   };
 
+  const handleAddClient = async () => {
+    if (!newClientData.email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .insert({
+          id: crypto.randomUUID(),
+          email: newClientData.email,
+          full_name: newClientData.full_name || null,
+          phone_number: newClientData.phone_number || null,
+          address: newClientData.address || null,
+          occupation: newClientData.occupation || null,
+          client_no: newClientData.client_no || null,
+        });
+
+      if (error) throw error;
+
+      toast.success("Client added successfully");
+      setAddClientDialogOpen(false);
+      setNewClientData({
+        email: "",
+        full_name: "",
+        phone_number: "",
+        address: "",
+        occupation: "",
+        client_no: "",
+      });
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFundLoan = async () => {
     setLoading(true);
     try {
@@ -792,7 +842,7 @@ export default function StaffDashboard() {
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="users" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="users">Clients</TabsTrigger>
             <TabsTrigger value="applications">Applications</TabsTrigger>
             <TabsTrigger value="loans">Loans</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
@@ -801,8 +851,15 @@ export default function StaffDashboard() {
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Users</CardTitle>
-                <CardDescription>View and manage user profiles</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Clients</CardTitle>
+                    <CardDescription>View and manage client profiles</CardDescription>
+                  </div>
+                  <Button onClick={() => setAddClientDialogOpen(true)}>
+                    Add Client
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -913,14 +970,14 @@ export default function StaffDashboard() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    No users found
+                    No clients found
                   </div>
                 )}
 
                 {totalUserPages > 1 && (
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
-                      Showing {((userPage - 1) * usersPerPage) + 1} to {Math.min(userPage * usersPerPage, sortedUsers.length)} of {sortedUsers.length} users
+                      Showing {((userPage - 1) * usersPerPage) + 1} to {Math.min(userPage * usersPerPage, sortedUsers.length)} of {sortedUsers.length} clients
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -2392,6 +2449,92 @@ export default function StaffDashboard() {
                 className="flex-1"
               >
                 {loading ? "Recording..." : "Record Payment"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Client Dialog */}
+      <Dialog open={addClientDialogOpen} onOpenChange={setAddClientDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Client</DialogTitle>
+            <DialogDescription>
+              Create a new client profile. Email is required.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Email <span className="text-destructive">*</span></Label>
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={newClientData.email}
+                  onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Client Number</Label>
+                <Input
+                  placeholder="Client number"
+                  value={newClientData.client_no}
+                  onChange={(e) => setNewClientData({ ...newClientData, client_no: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input
+                placeholder="Full name"
+                value={newClientData.full_name}
+                onChange={(e) => setNewClientData({ ...newClientData, full_name: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Phone Number</Label>
+              <Input
+                placeholder="Phone number"
+                value={newClientData.phone_number}
+                onChange={(e) => setNewClientData({ ...newClientData, phone_number: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Textarea
+                placeholder="Address"
+                value={newClientData.address}
+                onChange={(e) => setNewClientData({ ...newClientData, address: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Occupation</Label>
+              <Input
+                placeholder="Occupation"
+                value={newClientData.occupation}
+                onChange={(e) => setNewClientData({ ...newClientData, occupation: e.target.value })}
+              />
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setAddClientDialogOpen(false)} 
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddClient}
+                disabled={loading || !newClientData.email.trim()}
+                className="flex-1"
+              >
+                {loading ? "Adding..." : "Add Client"}
               </Button>
             </div>
           </div>
