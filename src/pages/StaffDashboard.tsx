@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { format, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload } from "lucide-react";
+import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload, List, Grid } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 
@@ -31,6 +31,8 @@ export default function StaffDashboard() {
   const [loanDetailsDialogOpen, setLoanDetailsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
+  const [loanViewMode, setLoanViewMode] = useState<"list" | "table">("list");
+  const [loanSearch, setLoanSearch] = useState("");
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -176,6 +178,61 @@ export default function StaffDashboard() {
       return false;
     });
   }, [payments, paymentSearch]);
+
+  const filteredLoans = useMemo(() => {
+    if (!loanSearch.trim()) return loans;
+
+    const searchLower = loanSearch.toLowerCase().trim();
+
+    return loans.filter((loan) => {
+      // Search by user name
+      const userName = loan.profiles?.full_name?.toLowerCase() || "";
+      if (userName.includes(searchLower)) return true;
+
+      // Search by principal amount
+      const principal = loan.principal_amount?.toString() || "";
+      if (principal.includes(searchLower)) return true;
+
+      // Search by remaining balance
+      const balance = loan.remaining_balance?.toString() || "";
+      if (balance.includes(searchLower)) return true;
+
+      // Search by date (various formats)
+      const startDate = new Date(loan.start_date);
+      const nextPaymentDate = new Date(loan.next_payment_date);
+      
+      // Try to parse as a date
+      try {
+        const searchDate = parseISO(searchLower);
+        if (!isNaN(searchDate.getTime())) {
+          const searchDateStr = format(searchDate, "yyyy-MM-dd");
+          if (format(startDate, "yyyy-MM-dd") === searchDateStr) return true;
+          if (format(nextPaymentDate, "yyyy-MM-dd") === searchDateStr) return true;
+        }
+      } catch (e) {
+        // Not a valid date string
+      }
+
+      // Check for month name
+      const monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const monthIndex = monthNames.findIndex(m => m.startsWith(searchLower));
+      if (monthIndex !== -1) {
+        if (startDate.getMonth() === monthIndex) return true;
+        if (nextPaymentDate.getMonth() === monthIndex) return true;
+      }
+
+      // Check for year
+      if (searchLower.length === 4 && !isNaN(Number(searchLower))) {
+        if (startDate.getFullYear().toString() === searchLower) return true;
+        if (nextPaymentDate.getFullYear().toString() === searchLower) return true;
+      }
+
+      return false;
+    });
+  }, [loans, loanSearch]);
 
   const handleReviewApplication = (app: any) => {
     setSelectedApp(app);
@@ -438,55 +495,148 @@ export default function StaffDashboard() {
                 <CardTitle>Active Loans</CardTitle>
                 <CardDescription>Monitor active loans and balances</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {loans.map((loan) => (
-                    <div key={loan.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold">{loan.profiles?.full_name || "N/A"}</h3>
-                          <p className="text-sm text-muted-foreground">{loan.profiles?.email}</p>
-                        </div>
-                        <StatusBadge status={loan.status} />
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Principal</p>
-                          <p className="font-semibold">${loan.principal_amount}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Balance</p>
-                          <p className="font-semibold text-primary">${loan.remaining_balance}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Terms Left</p>
-                          <p className="font-semibold">
-                            {loan.terms_remaining}/{loan.terms_weeks}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Next Payment</p>
-                          <p className="font-semibold">
-                            {format(new Date(loan.next_payment_date), "MMM d")}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setLoanDetailsDialogOpen(true);
-                        }}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Details & Payments
-                      </Button>
-                    </div>
-                  ))}
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 flex-1">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder='Search by user name, amount, or date (e.g., "2025-01-15", "January")'
+                      value={loanSearch}
+                      onChange={(e) => setLoanSearch(e.target.value)}
+                      className="max-w-2xl"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 border rounded-md p-1">
+                    <Button
+                      variant={loanViewMode === "list" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setLoanViewMode("list")}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={loanViewMode === "table" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setLoanViewMode("table")}
+                    >
+                      <Grid className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+
+                {filteredLoans.length > 0 ? (
+                  loanViewMode === "list" ? (
+                    <div className="space-y-4">
+                      {filteredLoans.map((loan) => (
+                        <div key={loan.id} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <h3 className="font-semibold">{loan.profiles?.full_name || "N/A"}</h3>
+                              <p className="text-sm text-muted-foreground">{loan.profiles?.email}</p>
+                            </div>
+                            <StatusBadge status={loan.status} />
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Principal</p>
+                              <p className="font-semibold">${loan.principal_amount}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Balance</p>
+                              <p className="font-semibold text-primary">${loan.remaining_balance}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Terms Left</p>
+                              <p className="font-semibold">
+                                {loan.terms_remaining}/{loan.terms_weeks}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Next Payment</p>
+                              <p className="font-semibold">
+                                {format(new Date(loan.next_payment_date), "MMM d")}
+                              </p>
+                            </div>
+                          </div>
+
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedLoan(loan);
+                              setLoanDetailsDialogOpen(true);
+                            }}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            View Details & Payments
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Borrower</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Principal</TableHead>
+                            <TableHead className="text-right">Balance</TableHead>
+                            <TableHead className="text-right">Terms Left</TableHead>
+                            <TableHead>Next Payment</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredLoans.map((loan) => (
+                            <TableRow key={loan.id}>
+                              <TableCell className="font-medium">
+                                {loan.profiles?.full_name || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {loan.profiles?.email || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <StatusBadge status={loan.status} />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ${loan.principal_amount}
+                              </TableCell>
+                              <TableCell className="text-right font-semibold text-primary">
+                                ${loan.remaining_balance}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {loan.terms_remaining}/{loan.terms_weeks}
+                              </TableCell>
+                              <TableCell>
+                                {format(new Date(loan.next_payment_date), "MMM d")}
+                              </TableCell>
+                              <TableCell>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedLoan(loan);
+                                    setLoanDetailsDialogOpen(true);
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Details
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    {loanSearch ? "No loans found matching your search" : "No loans yet"}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
