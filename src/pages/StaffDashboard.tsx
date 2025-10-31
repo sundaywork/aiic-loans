@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { format, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload, List, Grid } from "lucide-react";
+import { LogOut, Eye, CheckCircle, XCircle, Clock, FileText, Search, Upload, List, Grid, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 
@@ -33,6 +33,8 @@ export default function StaffDashboard() {
   const [paymentSearch, setPaymentSearch] = useState("");
   const [loanViewMode, setLoanViewMode] = useState<"list" | "table">("list");
   const [loanSearch, setLoanSearch] = useState("");
+  const [loanSortColumn, setLoanSortColumn] = useState<string | null>(null);
+  const [loanSortDirection, setLoanSortDirection] = useState<"asc" | "desc">("asc");
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -233,6 +235,72 @@ export default function StaffDashboard() {
       return false;
     });
   }, [loans, loanSearch]);
+
+  const sortedLoans = useMemo(() => {
+    if (!loanSortColumn) return filteredLoans;
+
+    return [...filteredLoans].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (loanSortColumn) {
+        case "name":
+          aValue = a.profiles?.full_name?.toLowerCase() || "";
+          bValue = b.profiles?.full_name?.toLowerCase() || "";
+          break;
+        case "email":
+          aValue = a.profiles?.email?.toLowerCase() || "";
+          bValue = b.profiles?.email?.toLowerCase() || "";
+          break;
+        case "status":
+          aValue = a.status?.toLowerCase() || "";
+          bValue = b.status?.toLowerCase() || "";
+          break;
+        case "principal":
+          aValue = parseFloat(a.principal_amount) || 0;
+          bValue = parseFloat(b.principal_amount) || 0;
+          break;
+        case "balance":
+          aValue = parseFloat(a.remaining_balance) || 0;
+          bValue = parseFloat(b.remaining_balance) || 0;
+          break;
+        case "terms":
+          aValue = a.terms_remaining || 0;
+          bValue = b.terms_remaining || 0;
+          break;
+        case "next_payment":
+          aValue = new Date(a.next_payment_date).getTime();
+          bValue = new Date(b.next_payment_date).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return loanSortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return loanSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredLoans, loanSortColumn, loanSortDirection]);
+
+  const handleLoanSort = (column: string) => {
+    if (loanSortColumn === column) {
+      setLoanSortDirection(loanSortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setLoanSortColumn(column);
+      setLoanSortDirection("asc");
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (loanSortColumn !== column) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    }
+    return loanSortDirection === "asc" ? (
+      <ArrowUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ArrowDown className="h-4 w-4 ml-1" />
+    );
+  };
 
   const handleReviewApplication = (app: any) => {
     setSelectedApp(app);
@@ -524,10 +592,10 @@ export default function StaffDashboard() {
                   </div>
                 </div>
 
-                {filteredLoans.length > 0 ? (
+                {sortedLoans.length > 0 ? (
                   loanViewMode === "list" ? (
                     <div className="space-y-4">
-                      {filteredLoans.map((loan) => (
+                      {sortedLoans.map((loan) => (
                         <div key={loan.id} className="border rounded-lg p-4 space-y-3">
                           <div className="flex items-start justify-between">
                             <div className="space-y-1">
@@ -579,18 +647,74 @@ export default function StaffDashboard() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Borrower</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Principal</TableHead>
-                            <TableHead className="text-right">Balance</TableHead>
-                            <TableHead className="text-right">Terms Left</TableHead>
-                            <TableHead>Next Payment</TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleLoanSort("name")}
+                            >
+                              <div className="flex items-center">
+                                Borrower
+                                <SortIcon column="name" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleLoanSort("email")}
+                            >
+                              <div className="flex items-center">
+                                Email
+                                <SortIcon column="email" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleLoanSort("status")}
+                            >
+                              <div className="flex items-center">
+                                Status
+                                <SortIcon column="status" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="text-right cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleLoanSort("principal")}
+                            >
+                              <div className="flex items-center justify-end">
+                                Principal
+                                <SortIcon column="principal" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="text-right cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleLoanSort("balance")}
+                            >
+                              <div className="flex items-center justify-end">
+                                Balance
+                                <SortIcon column="balance" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="text-right cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleLoanSort("terms")}
+                            >
+                              <div className="flex items-center justify-end">
+                                Terms Left
+                                <SortIcon column="terms" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleLoanSort("next_payment")}
+                            >
+                              <div className="flex items-center">
+                                Next Payment
+                                <SortIcon column="next_payment" />
+                              </div>
+                            </TableHead>
                             <TableHead>Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredLoans.map((loan) => (
+                          {sortedLoans.map((loan) => (
                             <TableRow key={loan.id}>
                               <TableCell className="font-medium">
                                 {loan.profiles?.full_name || "N/A"}
