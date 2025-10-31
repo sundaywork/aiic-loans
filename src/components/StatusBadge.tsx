@@ -8,7 +8,7 @@ interface StatusBadgeProps {
 
 const statusConfig: Record<string, { label: string; variant: string; className?: string }> = {
   submitted: { label: "Submitted", variant: "default" },
-  approved: { label: "Approved", variant: "default", className: "bg-green-100 text-green-800 hover:bg-green-100" },
+  approved: { label: "Approved", variant: "default", className: "bg-green-200 text-green-800 hover:bg-green-200" },
   rejected: { label: "Rejected", variant: "destructive" },
   pending: { label: "Pending", variant: "warning" },
   funded: { label: "Funded", variant: "success" },
