@@ -907,6 +907,50 @@ export default function StaffDashboard() {
                     </Popover>
                   </div>
 
+                  {paymentData.loan_id && (() => {
+                    const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
+                    if (!selectedLoan) return null;
+                    return (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <h4 className="font-semibold mb-3">Loan Details</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Borrower</p>
+                            <p className="font-semibold">{selectedLoan.profiles?.full_name || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Principal</p>
+                            <p className="font-semibold">${selectedLoan.principal_amount}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Balance</p>
+                            <p className="font-semibold text-primary">${selectedLoan.remaining_balance}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Weekly Payment</p>
+                            <p className="font-semibold">${selectedLoan.weekly_payment}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Terms Remaining</p>
+                            <p className="font-semibold">{selectedLoan.terms_remaining}/{selectedLoan.terms_weeks}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Next Payment</p>
+                            <p className="font-semibold">{format(new Date(selectedLoan.next_payment_date), "MMM d, yyyy")}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Interest Rate</p>
+                            <p className="font-semibold">{selectedLoan.interest_rate}%</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Status</p>
+                            <StatusBadge status={selectedLoan.status} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Payment Amount ($)</Label>
