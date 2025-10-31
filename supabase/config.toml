@@ -1,1 +1,7 @@
 project_id = "ypdrtakwsiohngrujklv"
+
+[functions.import-excel-data]
+timeout = 540
+
+[functions.clean-imported-data]
+timeout = 300
