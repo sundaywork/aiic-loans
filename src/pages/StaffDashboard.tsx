@@ -495,6 +495,12 @@ export default function StaffDashboard() {
   };
 
   const handleSubmitReview = async () => {
+    // Validate that notes are provided if interest rate is not 40
+    if (reviewData.interest_rate && parseFloat(reviewData.interest_rate) !== 40 && !reviewData.pending_notes?.trim()) {
+      toast.error("Note is required when interest rate is not 40%");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -1446,14 +1452,26 @@ export default function StaffDashboard() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Interest Rate (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={reviewData.interest_rate}
-                  onChange={(e) => handleReviewDataChange("interest_rate", e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Interest Rate (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={reviewData.interest_rate}
+                    onChange={(e) => handleReviewDataChange("interest_rate", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Weekly Payment ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={reviewData.weekly_payment}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
               </div>
 
               {reviewData.status === "approved" && (
@@ -1493,12 +1511,17 @@ export default function StaffDashboard() {
               </div>
 
               <div className="space-y-2">
-                <Label>Pending Notes (Optional)</Label>
+                <Label>
+                  Notes {reviewData.interest_rate && parseFloat(reviewData.interest_rate) !== 40 && <span className="text-destructive">*</span>}
+                </Label>
                 <Textarea
                   value={reviewData.pending_notes}
                   onChange={(e) => setReviewData({ ...reviewData, pending_notes: e.target.value })}
-                  placeholder="Enter pending notes if applicable..."
+                  placeholder="Enter notes..."
                 />
+                {reviewData.interest_rate && parseFloat(reviewData.interest_rate) !== 40 && !reviewData.pending_notes && (
+                  <p className="text-sm text-destructive">Note is required when interest rate is not 40%</p>
+                )}
               </div>
 
               <div className="flex gap-2 pt-4">
@@ -1627,7 +1650,7 @@ export default function StaffDashboard() {
                   )}
                   {selectedApp.pending_notes && (
                     <div>
-                      <Label className="text-muted-foreground">Pending Notes</Label>
+                      <Label className="text-muted-foreground">Notes</Label>
                       <p className="font-medium">{selectedApp.pending_notes}</p>
                     </div>
                   )}
