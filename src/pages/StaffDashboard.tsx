@@ -896,24 +896,26 @@ export default function StaffDashboard() {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
-                    <Select 
-                      value={usersPerPage.toString()} 
-                      onValueChange={(value) => {
-                        setUsersPerPage(parseInt(value));
-                        setUserPage(1);
-                      }}
-                    >
-                      <SelectTrigger className="w-20 h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                      <Select 
+                        value={usersPerPage.toString()} 
+                        onValueChange={(value) => {
+                          setUsersPerPage(parseInt(value));
+                          setUserPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="w-20 h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
