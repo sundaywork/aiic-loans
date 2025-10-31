@@ -789,18 +789,22 @@ export default function StaffDashboard() {
                       >
                         Previous
                       </Button>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: totalLoanPages }, (_, i) => i + 1).map((page) => (
-                          <Button
-                            key={page}
-                            variant={loanPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setLoanPage(page)}
-                            className="w-9"
-                          >
-                            {page}
-                          </Button>
-                        ))}
+                      <div className="flex items-center gap-1 text-sm">
+                        <span className="text-muted-foreground">Page</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={totalLoanPages}
+                          value={loanPage}
+                          onChange={(e) => {
+                            const page = parseInt(e.target.value);
+                            if (page >= 1 && page <= totalLoanPages) {
+                              setLoanPage(page);
+                            }
+                          }}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-muted-foreground">of {totalLoanPages}</span>
                       </div>
                       <Button
                         variant="outline"
