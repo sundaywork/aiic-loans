@@ -1329,6 +1329,7 @@ export default function StaffDashboard() {
                           <TableHead>Email</TableHead>
                           <TableHead className="text-right">Amount</TableHead>
                           <TableHead className="text-right">Balance After</TableHead>
+                          <TableHead>Paid By</TableHead>
                           <TableHead>Notes</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1347,6 +1348,9 @@ export default function StaffDashboard() {
                             </TableCell>
                             <TableCell className="text-right">
                               ${payment.remaining_balance_after}
+                            </TableCell>
+                            <TableCell>
+                              {payment.paid_by || "-"}
                             </TableCell>
                             <TableCell className="text-muted-foreground max-w-xs truncate">
                               {payment.notes || "-"}
@@ -1829,6 +1833,7 @@ export default function StaffDashboard() {
                           <th className="text-left p-3 text-sm font-medium">Date</th>
                           <th className="text-left p-3 text-sm font-medium">Amount</th>
                           <th className="text-left p-3 text-sm font-medium">Balance After</th>
+                          <th className="text-left p-3 text-sm font-medium">Paid By</th>
                           <th className="text-left p-3 text-sm font-medium">Notes</th>
                         </tr>
                       </thead>
@@ -1845,6 +1850,9 @@ export default function StaffDashboard() {
                               </td>
                               <td className="p-3 text-sm">
                                 ${payment.remaining_balance_after}
+                              </td>
+                              <td className="p-3 text-sm">
+                                {payment.paid_by || "-"}
                               </td>
                               <td className="p-3 text-sm text-muted-foreground">
                                 {payment.notes || "-"}
