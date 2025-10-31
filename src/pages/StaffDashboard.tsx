@@ -842,36 +842,60 @@ export default function StaffDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="h-8 w-8" />
-            <h1 className="text-xl font-bold">Staff Dashboard</h1>
+      <Tabs defaultValue="users" className="h-full">
+        <header className="border-b bg-card sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="Logo" className="h-8 w-8" />
+              <h1 className="text-xl font-bold">Staff Dashboard</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/import")}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import Data
+              </Button>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/import")}>
-              <Upload className="h-4 w-4 mr-2" />
-              Import Data
-            </Button>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
+          <TabsList className="w-full h-12 bg-muted/30 rounded-none border-b justify-start px-4 gap-1">
+            <TabsTrigger 
+              value="users" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+            >
+              Clients
+            </TabsTrigger>
+            <TabsTrigger 
+              value="applications"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+            >
+              Applications
+            </TabsTrigger>
+            <TabsTrigger 
+              value="loans"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+            >
+              Loans
+            </TabsTrigger>
+            <TabsTrigger 
+              value="payments"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+            >
+              Payments
+            </TabsTrigger>
+            <TabsTrigger 
+              value="reports"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
+            >
+              Reports
+            </TabsTrigger>
+          </TabsList>
+        </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-3xl">
-            <TabsTrigger value="users">Clients</TabsTrigger>
-            <TabsTrigger value="applications">Applications</TabsTrigger>
-            <TabsTrigger value="loans">Loans</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="users" className="space-y-4">
+          <TabsContent value="users" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -2031,8 +2055,7 @@ export default function StaffDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
-      </main>
+        </main>
 
       {/* Review Application Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -2893,6 +2916,7 @@ export default function StaffDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+      </Tabs>
     </div>
   );
 }
