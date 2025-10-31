@@ -860,7 +860,7 @@ export default function StaffDashboard() {
               </Button>
             </div>
           </div>
-          <TabsList className="w-full h-12 bg-muted/30 rounded-none border-b justify-start container mx-auto gap-1">
+          <TabsList className="w-full h-12 bg-muted/30 rounded-none border-b justify-start container mx-auto px-4 gap-1">
             <TabsTrigger 
               value="users" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/90 data-[state=active]:to-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
