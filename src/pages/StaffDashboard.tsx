@@ -1538,6 +1538,16 @@ export default function StaffDashboard() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Interest Rate (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={reviewData.interest_rate}
+                  onChange={(e) => handleReviewDataChange("interest_rate", e.target.value)}
+                />
+              </div>
+
               {reviewData.status === "approved" && (
                 <>
                   <div className="space-y-2">
@@ -1547,15 +1557,6 @@ export default function StaffDashboard() {
                       step="0.01"
                       value={reviewData.approved_amount}
                       onChange={(e) => handleReviewDataChange("approved_amount", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Interest Rate (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={reviewData.interest_rate}
-                      onChange={(e) => handleReviewDataChange("interest_rate", e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
