@@ -36,6 +36,8 @@ export default function StaffDashboard() {
   const [newLoanStatus, setNewLoanStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [paymentsPerPage, setPaymentsPerPage] = useState(10);
   const [loanViewMode, setLoanViewMode] = useState<"list" | "table">("table");
   const [loanSearch, setLoanSearch] = useState("");
   const [loanSortColumn, setLoanSortColumn] = useState<string | null>(null);
@@ -194,6 +196,14 @@ export default function StaffDashboard() {
       return false;
     });
   }, [payments, paymentSearch]);
+
+  const paginatedPayments = useMemo(() => {
+    const startIndex = (paymentPage - 1) * paymentsPerPage;
+    const endIndex = startIndex + paymentsPerPage;
+    return filteredPayments.slice(startIndex, endIndex);
+  }, [filteredPayments, paymentPage, paymentsPerPage]);
+
+  const totalPaymentPages = Math.ceil(filteredPayments.length / paymentsPerPage);
 
   const filteredLoans = useMemo(() => {
     if (!loanSearch.trim()) return loans;
@@ -1336,14 +1346,39 @@ export default function StaffDashboard() {
                 <CardDescription>View all recorded payments across all loans</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder='Search by user name, amount, or date (e.g., "2025-01-15", "this week", "this month", "January")'
-                    value={paymentSearch}
-                    onChange={(e) => setPaymentSearch(e.target.value)}
-                    className="max-w-2xl"
-                  />
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-1 min-w-[300px]">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder='Search by user name, amount, or date (e.g., "2025-01-15", "this week", "this month", "January")'
+                      value={paymentSearch}
+                      onChange={(e) => {
+                        setPaymentSearch(e.target.value);
+                        setPaymentPage(1);
+                      }}
+                      className="max-w-2xl"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                    <Select 
+                      value={paymentsPerPage.toString()} 
+                      onValueChange={(value) => {
+                        setPaymentsPerPage(parseInt(value));
+                        setPaymentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-20 h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {filteredPayments.length > 0 ? (
@@ -1360,7 +1395,7 @@ export default function StaffDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredPayments.map((payment) => (
+                        {paginatedPayments.map((payment) => (
                           <TableRow key={payment.id}>
                             <TableCell className="font-medium">
                               {format(new Date(payment.payment_date), "MMM d, yyyy")}
@@ -1387,6 +1422,35 @@ export default function StaffDashboard() {
                   <p className="text-center text-muted-foreground py-8">
                     {paymentSearch ? "No payments found matching your search" : "No payments recorded yet"}
                   </p>
+                )}
+
+                {filteredPayments.length > 0 && (
+                  <div className="flex items-center justify-between pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {((paymentPage - 1) * paymentsPerPage) + 1} to {Math.min(paymentPage * paymentsPerPage, filteredPayments.length)} of {filteredPayments.length} payments
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPaymentPage(p => Math.max(1, p - 1))}
+                        disabled={paymentPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm">
+                        Page {paymentPage} of {totalPaymentPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPaymentPage(p => Math.min(totalPaymentPages, p + 1))}
+                        disabled={paymentPage === totalPaymentPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
