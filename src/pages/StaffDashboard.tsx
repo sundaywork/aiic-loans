@@ -34,7 +34,7 @@ export default function StaffDashboard() {
   const [loanDetailsDialogOpen, setLoanDetailsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
-  const [loanViewMode, setLoanViewMode] = useState<"list" | "table">("list");
+  const [loanViewMode, setLoanViewMode] = useState<"list" | "table">("table");
   const [loanSearch, setLoanSearch] = useState("");
   const [loanSortColumn, setLoanSortColumn] = useState<string | null>(null);
   const [loanSortDirection, setLoanSortDirection] = useState<"asc" | "desc">("asc");
