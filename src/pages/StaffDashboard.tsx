@@ -2536,18 +2536,56 @@ export default function StaffDashboard() {
               </div>
               <div className="space-y-2">
                 <Label>Occupation</Label>
-                <Select
-                  value={newClientData.occupation}
-                  onValueChange={(value) => setNewClientData({ ...newClientData, occupation: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select occupation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Taxi Driver">Taxi Driver</SelectItem>
-                    <SelectItem value="Government">Government</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                    >
+                      {newClientData.occupation || "Select or type occupation..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search or type occupation..." 
+                        value={newClientData.occupation}
+                        onValueChange={(value) => setNewClientData({ ...newClientData, occupation: value })}
+                      />
+                      <CommandList>
+                        <CommandEmpty>Type to add custom occupation</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="Taxi Driver"
+                            onSelect={() => setNewClientData({ ...newClientData, occupation: "Taxi Driver" })}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newClientData.occupation === "Taxi Driver" ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            Taxi Driver
+                          </CommandItem>
+                          <CommandItem
+                            value="Government"
+                            onSelect={() => setNewClientData({ ...newClientData, occupation: "Government" })}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newClientData.occupation === "Government" ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            Government
+                          </CommandItem>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
