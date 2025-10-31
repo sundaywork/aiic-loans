@@ -999,7 +999,7 @@ export default function StaffDashboard() {
                 {totalUserPages > 1 && (
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
-                      Showing {((userPage - 1) * usersPerPage) + 1} to {Math.min(userPage * usersPerPage, sortedUsers.length)} of {sortedUsers.length} clients
+                      Page {userPage} of {totalUserPages} ({sortedUsers.length} clients)
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -1010,30 +1010,6 @@ export default function StaffDashboard() {
                       >
                         Previous
                       </Button>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, totalUserPages) }, (_, i) => {
-                          let pageNum;
-                          if (totalUserPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (userPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (userPage >= totalUserPages - 2) {
-                            pageNum = totalUserPages - 4 + i;
-                          } else {
-                            pageNum = userPage - 2 + i;
-                          }
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={userPage === pageNum ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setUserPage(pageNum)}
-                            >
-                              {pageNum}
-                            </Button>
-                          );
-                        })}
-                      </div>
                       <Button
                         variant="outline"
                         size="sm"
