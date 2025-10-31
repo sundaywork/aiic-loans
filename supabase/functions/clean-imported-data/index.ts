@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       
       if (listError) throw listError
       
-      const placeholderUsers = users.filter(user => user.email?.endsWith('placeholder.com'))
+      const placeholderUsers = users.filter(user => user.email?.endsWith('placeholder.aiic.nz'))
       console.log(`Found ${placeholderUsers.length} placeholder users`)
       
       for (const user of placeholderUsers) {

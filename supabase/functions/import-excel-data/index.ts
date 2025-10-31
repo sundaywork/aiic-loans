@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
           continue
         }
 
-        const email = client.email || `client${client.client_no}@placeholder.com`
+        const email = client.email || `client${client.client_no}@placeholder.aiic.nz`
         const password = `TempPass${client.client_no}!`
         
         console.log(`Creating auth user for ${client.client_no} with email: ${email}`)
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
         console.error('Client data:', JSON.stringify({
           client_no: client.client_no,
           full_name: client.full_name,
-          email: client.email || `client${client.client_no}@placeholder.com`,
+          email: client.email || `client${client.client_no}@placeholder.aiic.nz`,
           phone_number: client.phone_number,
           address: client.address
         }))
