@@ -1361,13 +1361,31 @@ export default function StaffDashboard() {
                     <CardDescription>Monitor active loans and balances</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" disabled>
+                    <Button 
+                      variant="outline" 
+                      disabled
+                      className={cn(
+                        "font-semibold",
+                        (() => {
+                          const nonCancelledLoans = loans.filter(l => l.status !== 'cancelled');
+                          const defaultedLoans = loans.filter(l => l.status === 'defaulted');
+                          const rate = nonCancelledLoans.length > 0 
+                            ? Math.round((defaultedLoans.length / nonCancelledLoans.length) * 100)
+                            : 0;
+                          
+                          if (rate === 0) return "text-green-600 border-green-600";
+                          if (rate <= 5) return "text-green-600 border-green-600";
+                          if (rate <= 15) return "text-yellow-600 border-yellow-600";
+                          return "text-red-600 border-red-600";
+                        })()
+                      )}
+                    >
                       Default Rate: {(() => {
                         const nonCancelledLoans = loans.filter(l => l.status !== 'cancelled');
                         const defaultedLoans = loans.filter(l => l.status === 'defaulted');
                         const rate = nonCancelledLoans.length > 0 
-                          ? ((defaultedLoans.length / nonCancelledLoans.length) * 100).toFixed(1)
-                          : '0.0';
+                          ? Math.round((defaultedLoans.length / nonCancelledLoans.length) * 100)
+                          : 0;
                         return `${rate}%`;
                       })()}
                     </Button>
