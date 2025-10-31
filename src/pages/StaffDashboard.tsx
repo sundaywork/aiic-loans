@@ -40,7 +40,7 @@ export default function StaffDashboard() {
   const [loanSortDirection, setLoanSortDirection] = useState<"asc" | "desc">("asc");
   const [loanPage, setLoanPage] = useState(1);
   const [loansPerPage, setLoansPerPage] = useState(10);
-  const [loanComboboxOpen, setLoanComboboxOpen] = useState(false);
+  const [loanSearchDialogOpen, setLoanSearchDialogOpen] = useState(false);
   const [appViewMode, setAppViewMode] = useState<"list" | "table">("list");
   const [appSearch, setAppSearch] = useState("");
   const [appSortColumn, setAppSortColumn] = useState<string | null>(null);
@@ -1203,56 +1203,22 @@ export default function StaffDashboard() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Select Loan</Label>
-                    <Popover open={loanComboboxOpen} onOpenChange={setLoanComboboxOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={loanComboboxOpen}
-                          className="w-full justify-between"
-                        >
-                          {paymentData.loan_id
-                            ? (() => {
-                                const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
-                                return selectedLoan
-                                  ? `${selectedLoan.profiles?.full_name} - $${selectedLoan.remaining_balance} balance`
-                                  : "Choose a loan";
-                              })()
-                            : "Choose a loan"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0 shadow-lg border-2 bg-background">
-                        <Command>
-                          <CommandInput placeholder="Search by name or balance..." />
-                          <CommandList>
-                            <CommandEmpty>No active loans found.</CommandEmpty>
-                            <CommandGroup>
-                              {loans
-                                .filter((l) => l.status === "active")
-                                .map((loan) => (
-                                  <CommandItem
-                                    key={loan.id}
-                                    value={`${loan.profiles?.full_name} ${loan.remaining_balance}`}
-                                    onSelect={() => {
-                                      setPaymentData({ ...paymentData, loan_id: loan.id });
-                                      setLoanComboboxOpen(false);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        paymentData.loan_id === loan.id ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {loan.profiles?.full_name} - ${loan.remaining_balance} balance
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      onClick={() => setLoanSearchDialogOpen(true)}
+                    >
+                      {paymentData.loan_id
+                        ? (() => {
+                            const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
+                            return selectedLoan
+                              ? `${selectedLoan.profiles?.full_name} - $${selectedLoan.remaining_balance} balance`
+                              : "Choose a loan";
+                          })()
+                        : "Choose a loan"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
                   </div>
 
                   {paymentData.loan_id && (() => {
@@ -1666,6 +1632,49 @@ export default function StaffDashboard() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Loan Search Dialog */}
+      <Dialog open={loanSearchDialogOpen} onOpenChange={setLoanSearchDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Loan</DialogTitle>
+            <DialogDescription>Search and select a loan to record payment</DialogDescription>
+          </DialogHeader>
+          <Command>
+            <CommandInput placeholder="Search by name..." />
+            <CommandList>
+              <CommandEmpty>No loan found.</CommandEmpty>
+              <CommandGroup>
+                {loans
+                  .filter((loan) => loan.status === "active" || loan.status === "overdue")
+                  .map((loan) => (
+                    <CommandItem
+                      key={loan.id}
+                      value={loan.profiles?.full_name || ""}
+                      onSelect={() => {
+                        setPaymentData({ ...paymentData, loan_id: loan.id });
+                        setLoanSearchDialogOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          paymentData.loan_id === loan.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span>{loan.profiles?.full_name || "N/A"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Balance: ${loan.remaining_balance}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </DialogContent>
       </Dialog>
 
