@@ -69,17 +69,35 @@ Deno.serve(async (req) => {
       results.errors.push(`Loans: ${message}`)
     }
 
-    // Delete users with placeholder emails
+    // Delete users with placeholder emails (with pagination)
     console.log('Deleting users with placeholder emails...')
     try {
-      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+      let allPlaceholderUsers: any[] = []
+      let page = 1
+      let hasMore = true
       
-      if (listError) throw listError
+      // Fetch all users with pagination
+      while (hasMore) {
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage: 1000 // Max per page
+        })
+        
+        if (listError) throw listError
+        
+        const placeholderUsers = users.filter(user => user.email?.includes('placeholder'))
+        allPlaceholderUsers = allPlaceholderUsers.concat(placeholderUsers)
+        
+        console.log(`Page ${page}: Found ${placeholderUsers.length} placeholder users`)
+        
+        hasMore = users.length === 1000
+        page++
+      }
       
-      const placeholderUsers = users.filter(user => user.email?.includes('placeholder'))
-      console.log(`Found ${placeholderUsers.length} placeholder users`)
+      console.log(`Total found: ${allPlaceholderUsers.length} placeholder users`)
       
-      for (const user of placeholderUsers) {
+      // Delete all placeholder users
+      for (const user of allPlaceholderUsers) {
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
         if (deleteError) {
           console.error(`✗ Failed to delete user ${user.email}:`, deleteError.message)
