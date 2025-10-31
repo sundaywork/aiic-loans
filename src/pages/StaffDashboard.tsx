@@ -587,28 +587,50 @@ export default function StaffDashboard() {
                       className="max-w-2xl"
                     />
                   </div>
-                  <div className="flex items-center gap-1 border rounded-md p-1">
-                    <Button
-                      variant={loanViewMode === "list" ? "secondary" : "ghost"}
-                      size="sm"
-                      onClick={() => setLoanViewMode("list")}
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={loanViewMode === "table" ? "secondary" : "ghost"}
-                      size="sm"
-                      onClick={() => setLoanViewMode("table")}
-                    >
-                      <Grid className="h-4 w-4" />
-                    </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                      <Select 
+                        value={loansPerPage.toString()} 
+                        onValueChange={(value) => {
+                          setLoansPerPage(parseInt(value));
+                          setLoanPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="w-20 h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-1 border rounded-md p-1">
+                      <Button
+                        variant={loanViewMode === "list" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setLoanViewMode("list")}
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={loanViewMode === "table" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setLoanViewMode("table")}
+                      >
+                        <Grid className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
                 {sortedLoans.length > 0 ? (
                   loanViewMode === "list" ? (
                     <div className="space-y-4">
-                      {sortedLoans.map((loan) => (
+                      {paginatedLoans.map((loan) => (
                         <div key={loan.id} className="border rounded-lg p-4 space-y-3">
                           <div className="flex items-start justify-between">
                             <div className="space-y-1">
