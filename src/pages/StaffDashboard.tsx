@@ -33,6 +33,7 @@ export default function StaffDashboard() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [loanDetailsDialogOpen, setLoanDetailsDialogOpen] = useState(false);
   const [loanStatusDialogOpen, setLoanStatusDialogOpen] = useState(false);
+  const [recordPaymentDialogOpen, setRecordPaymentDialogOpen] = useState(false);
   const [newLoanStatus, setNewLoanStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
@@ -996,8 +997,15 @@ export default function StaffDashboard() {
           <TabsContent value="loans" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Active Loans</CardTitle>
-                <CardDescription>Monitor active loans and balances</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Active Loans</CardTitle>
+                    <CardDescription>Monitor active loans and balances</CardDescription>
+                  </div>
+                  <Button onClick={() => setRecordPaymentDialogOpen(true)}>
+                    Record Payment
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-4">
@@ -1265,135 +1273,6 @@ export default function StaffDashboard() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Record Payment</CardTitle>
-                <CardDescription>Manually record a loan payment</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Select Loan</Label>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                      onClick={() => setLoanSearchDialogOpen(true)}
-                    >
-                      {paymentData.loan_id
-                        ? (() => {
-                            const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
-                            return selectedLoan
-                              ? `${selectedLoan.profiles?.full_name} - $${selectedLoan.remaining_balance} balance`
-                              : "Choose a loan";
-                          })()
-                        : "Choose a loan"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </div>
-
-                  {paymentData.loan_id && (() => {
-                    const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
-                    if (!selectedLoan) return null;
-                    return (
-                      <div className="border rounded-lg p-4 bg-muted/30">
-                        <h4 className="font-semibold mb-3">Loan Details</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Borrower</p>
-                            <p className="font-semibold">{selectedLoan.profiles?.full_name || "N/A"}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Principal</p>
-                            <p className="font-semibold">${selectedLoan.principal_amount}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Balance</p>
-                            <p className="font-semibold text-primary">${selectedLoan.remaining_balance}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Weekly Payment</p>
-                            <p className="font-semibold">${selectedLoan.weekly_payment}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Terms Remaining</p>
-                            <p className="font-semibold">{selectedLoan.terms_remaining}/{selectedLoan.terms_weeks}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Next Payment</p>
-                            <p className="font-semibold">{format(new Date(selectedLoan.next_payment_date), "MMM d, yyyy")}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Interest Rate</p>
-                            <p className="font-semibold">{selectedLoan.interest_rate}%</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Status</p>
-                            <StatusBadge status={selectedLoan.status} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Payment Amount ($)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={paymentData.amount}
-                        onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Payment Date</Label>
-                      <Input
-                        type="date"
-                        value={paymentData.payment_date}
-                        onChange={(e) => setPaymentData({ ...paymentData, payment_date: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Paid By</Label>
-                    <div className="flex gap-2 flex-wrap mb-2">
-                      {["Cash", "Card", "Cheq", "Bank Transfer"].map((method) => (
-                        <Button
-                          key={method}
-                          type="button"
-                          variant={paymentData.paid_by === method ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setPaymentData({ ...paymentData, paid_by: method })}
-                        >
-                          {method}
-                        </Button>
-                      ))}
-                    </div>
-                    <Input
-                      placeholder="Or enter custom payment method"
-                      value={paymentData.paid_by}
-                      onChange={(e) => setPaymentData({ ...paymentData, paid_by: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Notes (optional)</Label>
-                    <Textarea
-                      value={paymentData.notes}
-                      onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
-                    />
-                  </div>
-
-                  <Button onClick={handleRecordPayment} disabled={loading || !paymentData.loan_id || !paymentData.amount}>
-                    {loading ? "Recording..." : "Record Payment"}
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -2062,6 +1941,153 @@ export default function StaffDashboard() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Record Payment Dialog */}
+      <Dialog open={recordPaymentDialogOpen} onOpenChange={setRecordPaymentDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+            <DialogDescription>Manually record a loan payment</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select Loan</Label>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between"
+                onClick={() => setLoanSearchDialogOpen(true)}
+              >
+                {paymentData.loan_id
+                  ? (() => {
+                      const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
+                      return selectedLoan
+                        ? `${selectedLoan.profiles?.full_name} - $${selectedLoan.remaining_balance} balance`
+                        : "Choose a loan";
+                    })()
+                  : "Choose a loan"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </div>
+
+            {paymentData.loan_id && (() => {
+              const selectedLoan = loans.find((l) => l.id === paymentData.loan_id);
+              if (!selectedLoan) return null;
+              return (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-semibold mb-3">Loan Details</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Borrower</p>
+                      <p className="font-semibold">{selectedLoan.profiles?.full_name || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Principal</p>
+                      <p className="font-semibold">${selectedLoan.principal_amount}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Balance</p>
+                      <p className="font-semibold text-primary">${selectedLoan.remaining_balance}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Weekly Payment</p>
+                      <p className="font-semibold">${selectedLoan.weekly_payment}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Terms Remaining</p>
+                      <p className="font-semibold">{selectedLoan.terms_remaining}/{selectedLoan.terms_weeks}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Next Payment</p>
+                      <p className="font-semibold">{format(new Date(selectedLoan.next_payment_date), "MMM d, yyyy")}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Interest Rate</p>
+                      <p className="font-semibold">{selectedLoan.interest_rate}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Status</p>
+                      <StatusBadge status={selectedLoan.status} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Payment Amount ($)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={paymentData.amount}
+                  onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Payment Date</Label>
+                <Input
+                  type="date"
+                  value={paymentData.payment_date}
+                  onChange={(e) => setPaymentData({ ...paymentData, payment_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Paid By</Label>
+              <div className="flex gap-2 flex-wrap mb-2">
+                {["Cash", "Card", "Cheq", "Bank Transfer"].map((method) => (
+                  <Button
+                    key={method}
+                    type="button"
+                    variant={paymentData.paid_by === method ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPaymentData({ ...paymentData, paid_by: method })}
+                  >
+                    {method}
+                  </Button>
+                ))}
+              </div>
+              <Input
+                placeholder="Or enter custom payment method"
+                value={paymentData.paid_by}
+                onChange={(e) => setPaymentData({ ...paymentData, paid_by: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes (optional)</Label>
+              <Textarea
+                value={paymentData.notes}
+                onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
+              />
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setRecordPaymentDialogOpen(false)} 
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  handleRecordPayment();
+                  setRecordPaymentDialogOpen(false);
+                }}
+                disabled={loading || !paymentData.loan_id || !paymentData.amount}
+                className="flex-1"
+              >
+                {loading ? "Recording..." : "Record Payment"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
