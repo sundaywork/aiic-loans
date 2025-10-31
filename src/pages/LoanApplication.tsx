@@ -344,15 +344,15 @@ export default function LoanApplication() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Required Documents</CardTitle>
-              <CardDescription>Upload photos of your documents (max 5MB each)</CardDescription>
+              <CardTitle>Documents (Optional)</CardTitle>
+              <CardDescription>Upload photos of your documents if available (max 5MB each)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { key: "driver_license", label: "Driver's License", required: true },
-                { key: "taxi_front", label: "Taxi Front Photo", required: true },
-                { key: "taxi_back", label: "Taxi Back Photo", required: true },
-                { key: "face_photo", label: "Face Photo", required: true },
+                { key: "driver_license", label: "Driver's License", required: false },
+                { key: "taxi_front", label: "Taxi Front Photo", required: false },
+                { key: "taxi_back", label: "Taxi Back Photo", required: false },
+                { key: "face_photo", label: "Face Photo", required: false },
               ].map((doc) => (
                 <div key={doc.key} className="space-y-2">
                   <Label htmlFor={doc.key}>
@@ -366,7 +366,6 @@ export default function LoanApplication() {
                       onChange={(e) =>
                         handleFileChange(doc.key as keyof typeof files, e.target.files?.[0] || null)
                       }
-                      required={doc.required}
                     />
                     {files[doc.key as keyof typeof files] && (
                       <Upload className="h-5 w-5 text-success" />
