@@ -754,7 +754,7 @@ export default function StaffDashboard() {
                               <Eye className="h-4 w-4 mr-2" />
                               Review
                             </Button>
-                            {app.status === "approved" && (
+                            {app.status === "approved" && !loans.some(loan => loan.application_id === app.id) && (
                               <Button
                                 size="sm"
                                 onClick={() => {
@@ -874,7 +874,7 @@ export default function StaffDashboard() {
                                     <Eye className="h-4 w-4 mr-1" />
                                     Review
                                   </Button>
-                                  {app.status === "approved" && (
+                                  {app.status === "approved" && !loans.some(loan => loan.application_id === app.id) && (
                                     <Button
                                       size="sm"
                                       onClick={() => {
