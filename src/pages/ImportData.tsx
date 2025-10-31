@@ -204,7 +204,7 @@ export default function ImportData() {
     try {
       const importData = {
         clients: [],
-        loans: preview.loans
+        loans: preview.loans.slice(0, 100)
       };
       
       const { data, error } = await supabase.functions.invoke("import-excel-data", {
@@ -492,10 +492,10 @@ export default function ImportData() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <Button onClick={handleImportClients} disabled={uploadingClients || uploadingLoans} variant="outline">
-                    {uploadingClients ? "Importing..." : "Import Clients (10 rows)"}
+                    {uploadingClients ? "Importing..." : "Import Clients"}
                   </Button>
                   <Button onClick={handleImportLoans} disabled={uploadingClients || uploadingLoans}>
-                    {uploadingLoans ? "Importing..." : "Import Loans (10 rows)"}
+                    {uploadingLoans ? "Importing..." : "Import Loans (100 rows)"}
                   </Button>
                 </div>
               </div>
