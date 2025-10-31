@@ -26,6 +26,7 @@ export default function StaffDashboard() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,6 +53,11 @@ export default function StaffDashboard() {
   const [appSortDirection, setAppSortDirection] = useState<"asc" | "desc">("asc");
   const [appPage, setAppPage] = useState(1);
   const [appsPerPage, setAppsPerPage] = useState(10);
+  const [userSearch, setUserSearch] = useState("");
+  const [userSortColumn, setUserSortColumn] = useState<string | null>(null);
+  const [userSortDirection, setUserSortDirection] = useState<"asc" | "desc">("asc");
+  const [userPage, setUserPage] = useState(1);
+  const [usersPerPage, setUsersPerPage] = useState(10);
 
   const [reviewData, setReviewData] = useState({
     status: "",
@@ -79,6 +85,14 @@ export default function StaffDashboard() {
   }, []);
 
   const loadData = async () => {
+    // Load users from profiles
+    const { data: usersData } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    setUsers(usersData || []);
+
     // Load applications with profiles
     const { data: appsData } = await supabase
       .from("loan_applications")
@@ -208,6 +222,94 @@ export default function StaffDashboard() {
   }, [filteredPayments, paymentPage, paymentsPerPage]);
 
   const totalPaymentPages = Math.ceil(filteredPayments.length / paymentsPerPage);
+
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return users;
+
+    const searchLower = userSearch.toLowerCase().trim();
+
+    return users.filter((user) => {
+      const fullName = user.full_name?.toLowerCase() || "";
+      if (fullName.includes(searchLower)) return true;
+
+      const email = user.email?.toLowerCase() || "";
+      if (email.includes(searchLower)) return true;
+
+      const phone = user.phone_number?.toLowerCase() || "";
+      if (phone.includes(searchLower)) return true;
+
+      const clientNo = user.client_no?.toLowerCase() || "";
+      if (clientNo.includes(searchLower)) return true;
+
+      return false;
+    });
+  }, [users, userSearch]);
+
+  const sortedUsers = useMemo(() => {
+    if (!userSortColumn) return filteredUsers;
+
+    return [...filteredUsers].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (userSortColumn) {
+        case "name":
+          aValue = a.full_name?.toLowerCase() || "";
+          bValue = b.full_name?.toLowerCase() || "";
+          break;
+        case "email":
+          aValue = a.email?.toLowerCase() || "";
+          bValue = b.email?.toLowerCase() || "";
+          break;
+        case "phone":
+          aValue = a.phone_number || "";
+          bValue = b.phone_number || "";
+          break;
+        case "client_no":
+          aValue = a.client_no || "";
+          bValue = b.client_no || "";
+          break;
+        case "created_at":
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return userSortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return userSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredUsers, userSortColumn, userSortDirection]);
+
+  const handleUserSort = (column: string) => {
+    if (userSortColumn === column) {
+      setUserSortDirection(userSortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setUserSortColumn(column);
+      setUserSortDirection("asc");
+    }
+  };
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (userPage - 1) * usersPerPage;
+    const endIndex = startIndex + usersPerPage;
+    return sortedUsers.slice(startIndex, endIndex);
+  }, [sortedUsers, userPage, usersPerPage]);
+
+  const totalUserPages = Math.ceil(sortedUsers.length / usersPerPage);
+
+  const UserSortIcon = ({ column }: { column: string }) => {
+    if (userSortColumn !== column) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    }
+    return userSortDirection === "asc" ? (
+      <ArrowUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ArrowDown className="h-4 w-4 ml-1" />
+    );
+  };
 
   const filteredLoans = useMemo(() => {
     if (!loanSearch.trim()) return loans;
@@ -688,12 +790,185 @@ export default function StaffDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="applications" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+            <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="applications">Applications</TabsTrigger>
             <TabsTrigger value="loans">Loans</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="users" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Users</CardTitle>
+                <CardDescription>View and manage user profiles</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-1 min-w-[300px]">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder='Search by name, email, phone, or client number...'
+                      value={userSearch}
+                      onChange={(e) => {
+                        setUserSearch(e.target.value);
+                        setUserPage(1);
+                      }}
+                      className="max-w-2xl"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                    <Select 
+                      value={usersPerPage.toString()} 
+                      onValueChange={(value) => {
+                        setUsersPerPage(parseInt(value));
+                        setUserPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-20 h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {sortedUsers.length > 0 ? (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleUserSort("client_no")}
+                          >
+                            <div className="flex items-center">
+                              Client No
+                              <UserSortIcon column="client_no" />
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleUserSort("name")}
+                          >
+                            <div className="flex items-center">
+                              Name
+                              <UserSortIcon column="name" />
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleUserSort("email")}
+                          >
+                            <div className="flex items-center">
+                              Email
+                              <UserSortIcon column="email" />
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleUserSort("phone")}
+                          >
+                            <div className="flex items-center">
+                              Phone
+                              <UserSortIcon column="phone" />
+                            </div>
+                          </TableHead>
+                          <TableHead>Address</TableHead>
+                          <TableHead>Occupation</TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleUserSort("created_at")}
+                          >
+                            <div className="flex items-center">
+                              Joined
+                              <UserSortIcon column="created_at" />
+                            </div>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell>{user.client_no || "N/A"}</TableCell>
+                            <TableCell>{user.full_name || "N/A"}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>{user.phone_number || "N/A"}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{user.address || "N/A"}</TableCell>
+                            <TableCell>{user.occupation || "N/A"}</TableCell>
+                            <TableCell>
+                              {format(new Date(user.created_at), "d MMM, yyyy")}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No users found
+                  </div>
+                )}
+
+                {totalUserPages > 1 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {((userPage - 1) * usersPerPage) + 1} to {Math.min(userPage * usersPerPage, sortedUsers.length)} of {sortedUsers.length} users
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserPage(Math.max(1, userPage - 1))}
+                        disabled={userPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, totalUserPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalUserPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (userPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (userPage >= totalUserPages - 2) {
+                            pageNum = totalUserPages - 4 + i;
+                          } else {
+                            pageNum = userPage - 2 + i;
+                          }
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={userPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setUserPage(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserPage(Math.min(totalUserPages, userPage + 1))}
+                        disabled={userPage === totalUserPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="applications" className="space-y-4">
             <Card>
